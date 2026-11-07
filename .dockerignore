@@ -1,0 +1,9 @@
+node_modules
+dist
+data-dev
+test-results
+playwright-report
+coverage
+.git
+*.db
+*.db-*

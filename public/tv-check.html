@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gym TV · Device check</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f1113;
+        --surface: #171a1d;
+        --line: #2c3137;
+        --text: #f2f0eb;
+        --dim: #b3b7bc;
+        --good: #8fcf6a;
+        --warn: #f2b53a;
+        --bad: #ff6a3d;
+      }
+      html {
+        font-size: min(calc(100vw / 120), calc(100vh / 67.5));
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 2rem/1.3 system-ui, sans-serif;
+        padding: 3.375rem 6rem;
+        box-sizing: border-box;
+        height: 100vh;
+        overflow: hidden;
+      }
+      h1 {
+        font-size: 3.5rem;
+        margin: 0 0 1rem;
+      }
+      p {
+        margin: 0 0 1.5rem;
+        color: var(--dim);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        height: calc(100% - 10rem);
+      }
+      .card {
+        background: var(--surface);
+        border-radius: 1rem;
+        padding: 1.5rem 2rem;
+        overflow: hidden;
+      }
+      .card h2 {
+        font-size: 1.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--dim);
+        margin: 0 0 1rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 1.75rem;
+      }
+      td {
+        padding: 0.3rem 0;
+        border-bottom: 1px solid var(--line);
+      }
+      td:last-child {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .good { color: var(--good); }
+      .warn { color: var(--warn); }
+      .bad { color: var(--bad); }
+      #log {
+        font: 1.5rem/1.35 ui-monospace, monospace;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Gym TV device check</h1>
+    <p>Press every remote button (arrows, OK, Back, Play/Pause, colour keys). Press OK once to test sound. Leave this open 20 minutes to check the screen stays on.</p>
+    <div class="grid">
+      <div class="card">
+        <h2>Device</h2>
+        <table id="facts"></table>
+      </div>
+      <div class="card">
+        <h2>Events (newest first)</h2>
+        <div id="log"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        'use strict';
+        var started = Date.now();
+        var facts = document.getElementById('facts');
+        var log = document.getElementById('log');
+        var lines = [];
+        var audio = null;
+        var guardArmed = false;
+
+        function stamp() {
+          return ((Date.now() - started) / 1000).toFixed(1).padStart(7, ' ') + 's';
+        }
+
+        function add(text) {
+          lines.unshift(stamp() + '  ' + text);
+          lines = lines.slice(0, 26);
+          log.textContent = lines.join('\n');
+        }
+
+        function row(label, value, cls) {
+          var tr = document.createElement('tr');
+          var a = document.createElement('td');
+          var b = document.createElement('td');
+          a.textContent = label;
+          b.textContent = value;
+          if (cls) b.className = cls;
+          tr.appendChild(a);
+          tr.appendChild(b);
+          return tr;
+        }
+
+        function renderFacts() {
+          var up = Math.floor((Date.now() - started) / 1000);
+          var items = [
+            ['Viewport (CSS px)', window.innerWidth + ' × ' + window.innerHeight],
+            ['Device pixel ratio', String(window.devicePixelRatio)],
+            ['Secure context', String(window.isSecureContext), window.isSecureContext ? 'good' : 'warn'],
+            ['Wake Lock API', 'wakeLock' in navigator ? 'available' : 'missing', 'wakeLock' in navigator ? 'good' : 'warn'],
+            ['Web Audio', window.AudioContext || window.webkitAudioContext ? 'available' : 'missing'],
+            ['Audio state', audio ? audio.state : 'locked (press OK)', audio && audio.state === 'running' ? 'good' : 'warn'],
+            ['speechSynthesis', 'speechSynthesis' in window ? 'available' : 'missing'],
+            ['Fully Kiosk JS API', typeof window.fully === 'object' ? 'yes' : 'no'],
+            ['localStorage', storageOk() ? 'works' : 'blocked', storageOk() ? 'good' : 'bad'],
+            ['History guard', guardArmed ? 'armed' : 'not armed'],
+            ['Visible for', Math.floor(up / 60) + 'm ' + (up % 60) + 's'],
+          ];
+          facts.textContent = '';
+          items.forEach(function (it) {
+            facts.appendChild(row(it[0], it[1], it[2]));
+          });
+          var ua = document.createElement('tr');
+          var td = document.createElement('td');
+          td.colSpan = 2;
+          td.style.fontSize = '1.25rem';
+          td.style.color = 'var(--dim)';
+          td.textContent = navigator.userAgent;
+          ua.appendChild(td);
+          facts.appendChild(ua);
+        }
+
+        function storageOk() {
+          try {
+            localStorage.setItem('gymtv:probe', '1');
+            localStorage.removeItem('gymtv:probe');
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function beep() {
+          var Ctor = window.AudioContext || window.webkitAudioContext;
+          if (!Ctor) return;
+          if (!audio) audio = new Ctor();
+          audio.resume();
+          var osc = audio.createOscillator();
+          var gain = audio.createGain();
+          osc.frequency.value = 880;
+          gain.gain.value = 0.25;
+          osc.connect(gain).connect(audio.destination);
+          osc.start();
+          osc.stop(audio.currentTime + 0.2);
+        }
+
+        window.addEventListener('keydown', function (e) {
+          add('keydown  key=' + JSON.stringify(e.key) + ' code=' + JSON.stringify(e.code) + ' keyCode=' + e.keyCode + (e.repeat ? ' (repeat)' : ''));
+          if (e.keyCode === 13 || e.key === 'Enter') beep();
+          if (!guardArmed) {
+            history.pushState({ guard: true }, '', location.href);
+            guardArmed = true;
+            add('history guard pushed (Back should now produce a popstate below)');
+          }
+          if ([37, 38, 39, 40, 13].indexOf(e.keyCode) >= 0) e.preventDefault();
+        });
+        window.addEventListener('keyup', function (e) {
+          add('keyup    key=' + JSON.stringify(e.key) + ' keyCode=' + e.keyCode);
+        });
+        window.addEventListener('popstate', function () {
+          guardArmed = false;
+          add('popstate (this is how Back arrived) — press any key to re-arm');
+        });
+        document.addEventListener('visibilitychange', function () {
+          add('visibility → ' + document.visibilityState);
+        });
+        window.addEventListener('resize', function () {
+          add('resize → ' + window.innerWidth + '×' + window.innerHeight);
+        });
+
+        renderFacts();
+        setInterval(renderFacts, 1000);
+        add('ready');
+      })();
+    </script>
+  </body>
+</html>
