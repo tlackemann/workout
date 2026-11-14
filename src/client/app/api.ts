@@ -3,11 +3,22 @@ import type { PlanItem } from '../../core/plan.ts';
 import type { Exposure } from '../../core/progression/types.ts';
 import type { SessionState } from '../../core/session/types.ts';
 import type { ExercisePref, Prefs, Settings } from '../../core/settings.ts';
+import type { StatsDto } from '../../core/stats/types.ts';
 import type { SessionSummary } from '../../core/summary.ts';
 import type { HomeDto } from '../../server/services/sessionService.ts';
 import type { SessionDto } from '../../server/services/sessionDto.ts';
 
-export type { HomeDto, SessionDto };
+export type { HomeDto, SessionDto, StatsDto };
+
+/** The TV's own time zone, so days and weeks match the wall clock (the server runs in UTC). */
+function tzQuery(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return tz ? `?tz=${encodeURIComponent(tz)}` : '';
+  } catch {
+    return '';
+  }
+}
 
 interface Envelope<T> {
   readonly success: boolean;
@@ -62,6 +73,7 @@ export const api = {
   savePref: (exerciseId: string, pref: ExercisePref) =>
     request<ExercisePref>('PUT', `/api/exercises/${exerciseId}/prefs`, pref),
   history: (exerciseId: string) => request<Exposure[]>('GET', `/api/exercises/${exerciseId}/history`),
+  stats: () => request<StatsDto>('GET', `/api/stats${tzQuery()}`),
 };
 
 export const mediaUrl = (exerciseId: string, frame: 0 | 1) => `/api/media/${exerciseId}/${frame}`;

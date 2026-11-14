@@ -37,10 +37,33 @@ export function formatVolume(lb: number): string {
 }
 
 const DAY_FMT = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+const SHORT_DATE_FMT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const KEY_DATE_FMT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 const TIME_FMT = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
 
 export const formatDate = (epoch: number) => DAY_FMT.format(new Date(epoch));
 export const formatTimeOfDay = (epoch: number) => TIME_FMT.format(new Date(epoch));
+/** "Nov 14". */
+export const formatShortDate = (epoch: number) => SHORT_DATE_FMT.format(new Date(epoch));
+/** A 'YYYY-MM-DD' calendar key as "Nov 14" (no time-zone shifting). */
+export const formatDayKey = (key: string) => KEY_DATE_FMT.format(new Date(`${key}T00:00:00Z`));
+
+/** "1 week", "3 weeks". */
+export function formatWeeks(n: number): string {
+  return `${n} ${n === 1 ? 'week' : 'weeks'}`;
+}
+
+/** Axis-friendly numbers: 950, 1.5k, 12k. */
+export function formatCompact(n: number): string {
+  if (Math.abs(n) < 1000) return `${Math.round(n * 10) / 10}`;
+  const k = n / 1000;
+  return `${Math.abs(k) < 10 ? Math.round(k * 10) / 10 : Math.round(k)}k`;
+}
+
+/** One decimal at most, dropping a trailing ".0": 4, 4.5. */
+export function formatDecimal(n: number): string {
+  return `${Math.round(n * 10) / 10}`;
+}
 
 /** "Today", "Yesterday", "3 days ago", or a date. */
 export function formatAgo(epoch: number, now: number): string {

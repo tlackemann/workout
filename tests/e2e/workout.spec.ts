@@ -11,6 +11,14 @@ test('home and settings render inside the TV viewport @smoke', async ({ page }) 
   expect(overflow).toBeLessThanOrEqual(0);
   await page.goto('/settings');
   await expect(page.getByTestId('settings')).toBeVisible();
+  for (const tab of ['', '/consistency', '/sessions', '/muscles']) {
+    await page.goto(`/progress${tab}`);
+    // Empty state on a fresh database; charts once workouts exist.
+    await expect(page.getByTestId('progress').or(page.getByText('No finished workouts yet'))).toBeVisible();
+    const [x, y] = await page.evaluate(() => [document.documentElement.scrollWidth - innerWidth, document.documentElement.scrollHeight - innerHeight]);
+    expect(x).toBeLessThanOrEqual(0);
+    expect(y).toBeLessThanOrEqual(0);
+  }
 });
 
 test('picks a day and edits the plan with only the remote', async ({ page }) => {
@@ -140,4 +148,44 @@ test('settings work by touch and persist', async ({ page }) => {
   await page.waitForTimeout(700);
   await page.reload();
   await expect(page.getByTestId('equip-dumbbells')).toContainText('On');
+});
+
+test('charts finished workouts on the Progress screen with only the remote', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('home')).toBeVisible();
+  const focused = (id: string) => page.getByTestId(id).getAttribute('data-focused');
+
+  // Down to the link row, then sideways to Progress.
+  await press(page, 'ArrowDown');
+  for (let i = 0; i < 3 && (await focused('go-progress')) !== 'true'; i++) {
+    await press(page, (await focused('go-history')) === 'true' ? 'ArrowRight' : 'ArrowLeft');
+  }
+  await expect(page.getByTestId('go-progress')).toHaveAttribute('data-focused', 'true');
+  await press(page, 'Enter');
+
+  // Lifts: tab focused; ▼ walks the exercise list and the detail follows focus.
+  await expect(page.getByTestId('progress')).toBeVisible();
+  await expect(page.getByTestId('tab-lifts')).toHaveAttribute('data-focused', 'true');
+  await press(page, 'ArrowDown');
+  const rows = page.locator('[data-testid^="lift-"][role="button"]');
+  await expect(rows.first()).toHaveAttribute('data-focused', 'true');
+  const firstTitle = await page.getByTestId('lift-title').textContent();
+  await press(page, 'ArrowDown');
+  await expect(rows.nth(1)).toHaveAttribute('data-focused', 'true');
+  await expect(page.getByTestId('lift-title')).not.toHaveText(firstTitle ?? '');
+
+  // Back up to the tabs and across the views; tab changes don't stack history.
+  await press(page, 'ArrowUp', 2);
+  await expect(page.getByTestId('tab-lifts')).toHaveAttribute('data-focused', 'true');
+  await press(page, 'ArrowRight');
+  await expect(page).toHaveURL(/\/progress\/consistency$/);
+  await expect(page.getByTestId('weekly-chart')).toBeVisible();
+  await expect(page.getByTestId('streak')).toContainText('week');
+  await press(page, 'ArrowRight', 2);
+  await expect(page).toHaveURL(/\/progress\/muscles$/);
+  await expect(page.getByTestId('hbar-chart')).toBeVisible();
+
+  // The TV's Back (a history pop) returns Home in one step.
+  await page.goBack();
+  await expect(page.getByTestId('home')).toBeVisible();
 });

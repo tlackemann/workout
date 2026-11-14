@@ -151,6 +151,9 @@ export function Home() {
           <FocusButton onPress={() => navigate(paths.history())} testId="go-history" className="rounded-2xl bg-surface-2 px-8 py-4 text-[2rem]">
             History
           </FocusButton>
+          <FocusButton onPress={() => navigate(paths.progress())} testId="go-progress" className="rounded-2xl bg-surface-2 px-8 py-4 text-[2rem]">
+            Progress
+          </FocusButton>
           <FocusButton onPress={() => navigate(paths.settings())} testId="go-settings" className="rounded-2xl bg-surface-2 px-8 py-4 text-[2rem]">
             Settings
           </FocusButton>

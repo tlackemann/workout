@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '../../core/settings.ts';
-import { activeDto, NOW, sessionDto } from '../test/fixtures.ts';
+import { activeDto, NOW, sessionDto, statsDto } from '../test/fixtures.ts';
 import { KEYS, renderAt } from '../test/render.tsx';
 
 const api = vi.hoisted(() => ({
@@ -16,6 +16,7 @@ const api = vi.hoisted(() => ({
   summary: vi.fn(),
   saveSettings: vi.fn(),
   savePref: vi.fn(),
+  stats: vi.fn(),
 }));
 
 vi.mock('../app/api.ts', async (importOriginal) => {
@@ -29,6 +30,7 @@ const { Preview } = await import('./Preview.tsx');
 const { Summary } = await import('./Summary.tsx');
 const { History } = await import('./History.tsx');
 const { Settings } = await import('./Settings.tsx');
+const { Progress } = await import('./progress/Progress.tsx');
 
 beforeEach(() => {
   for (const fn of Object.values(api)) fn.mockReset();
@@ -172,6 +174,71 @@ describe('History', () => {
     api.sessions.mockResolvedValue([]);
     renderAt('/history', <History />);
     await screen.findByText('No finished workouts yet.');
+  });
+});
+
+describe('Progress', () => {
+  it('opens from Home', async () => {
+    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null });
+    api.sessions.mockResolvedValue([]);
+    renderAt('/', <Home />);
+    fireEvent.click(await screen.findByTestId('go-progress'));
+    expect(window.location.pathname).toBe('/progress');
+  });
+
+  it('shows lift progress, follows the selected lift and marks retired exercises', async () => {
+    api.stats.mockResolvedValue(statsDto());
+    renderAt('/progress', <Progress tab="lifts" />);
+    await screen.findByTestId('progress');
+    expect(screen.getByTestId('lift-title').textContent).toBe('Bench Press');
+    expect(screen.getByTestId('line-chart')).toBeTruthy();
+    expect(screen.getAllByTestId('pr-mark').length).toBe(2); // 145 and 155 beat everything before them
+    expect(screen.getByTestId('lift-leg-press').textContent).toContain('Retired');
+    fireEvent.click(screen.getByTestId('lift-barbell-row'));
+    expect(screen.getByTestId('lift-title').textContent).toBe('Bent-Over Row');
+    expect(screen.getByText(/trend starts after the next one/)).toBeTruthy();
+  });
+
+  it('switches views in place without adding history entries', async () => {
+    api.stats.mockResolvedValue(statsDto());
+    renderAt('/progress', <Progress tab="lifts" />);
+    await screen.findByTestId('progress');
+    const depth = window.history.length;
+    fireEvent.click(screen.getByTestId('tab-muscles'));
+    expect(window.location.pathname).toBe('/progress/muscles');
+    expect(window.history.length).toBe(depth);
+  });
+
+  it('renders the consistency, sessions and muscles views', async () => {
+    api.stats.mockResolvedValue(statsDto());
+    const { unmount } = renderAt('/progress/consistency', <Progress tab="consistency" />);
+    await screen.findByTestId('weekly-chart');
+    expect(screen.getByTestId('streak').textContent).toMatch(/week/);
+    unmount();
+
+    renderAt('/progress/sessions', <Progress tab="sessions" />);
+    await screen.findByTestId('sessions-duration');
+    expect(screen.getByTestId('sessions-volume')).toBeTruthy();
+    expect(screen.getAllByText('Push').length).toBeGreaterThan(0);
+  });
+
+  it('notes retired exercises in muscle balance', async () => {
+    api.stats.mockResolvedValue(statsDto());
+    renderAt('/progress/muscles', <Progress tab="muscles" />);
+    await screen.findByTestId('hbar-chart');
+    expect(screen.getByTestId('muscles-unmapped').textContent).toContain('Leg Press');
+  });
+
+  it('has empty and error states', async () => {
+    api.stats.mockResolvedValue({ ...statsDto(), workouts: 0 });
+    const { unmount } = renderAt('/progress', <Progress tab="lifts" />);
+    await screen.findByText('No finished workouts yet');
+    unmount();
+
+    api.stats.mockRejectedValue(new Error('Can’t reach the server.'));
+    renderAt('/progress', <Progress tab="lifts" />);
+    await screen.findByText('Can’t reach the server.');
+    expect(screen.getByTestId('progress-retry')).toBeTruthy();
   });
 });
 

@@ -21,6 +21,8 @@ export interface Slot {
   readonly priority: Priority;
   /** As many reps as possible: no progression target, just log what you got. */
   readonly amrap?: boolean;
+  /** Accessories only: keep this slot at the end when the accessory order is shuffled. */
+  readonly pin?: 'last';
 }
 
 export interface DayTemplate {

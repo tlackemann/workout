@@ -52,6 +52,10 @@ describe('templates', () => {
         expect(roles.filter((r) => r === 'anchor')).toHaveLength(2);
       });
 
+      it('only pins accessories', () => {
+        for (const slot of template.slots.filter((s) => s.pin)) expect(slot.role, slot.id).toBe('accessory');
+      });
+
       it('uses unique slot ids', () => {
         const ids = template.slots.map((s) => s.id);
         expect(new Set(ids).size).toBe(ids.length);

@@ -8,6 +8,7 @@ import { paths } from '../app/routes.ts';
 import { useAsync } from '../app/useAsync.ts';
 import { FocusButton } from '../components/FocusButton.tsx';
 import { KeyLegend } from '../components/KeyLegend.tsx';
+import { StatTile } from '../components/StatTile.tsx';
 import { Centered, Screen } from '../components/Screen.tsx';
 import { formatClock, formatDate, formatVolume, formatWeight } from '../lib/format.ts';
 import type { ExerciseDef } from '../../core/library/schema.ts';
@@ -20,15 +21,6 @@ function nextText(next: Target | null, exercise: ExerciseDef | undefined): strin
   const load = exercise.load.type === 'bodyweight' ? '' : ` @ ${formatWeight(next.load)}`;
   const tag = next.reason === 'progress' ? ' ↑' : next.reason === 'deload' ? ' (deload)' : next.reason === 'promote' ? ' (level up)' : '';
   return `Next: ${reps}${load}${tag}`;
-}
-
-function Stat(props: { readonly label: string; readonly value: string }) {
-  return (
-    <div className="rounded-[1.25rem] bg-surface px-8 py-5">
-      <div className="text-[1.75rem] font-medium text-dim">{props.label}</div>
-      <div className="tabular font-display text-[4rem] font-bold leading-tight">{props.value}</div>
-    </div>
-  );
 }
 
 export function Summary(props: { readonly id: string }) {
@@ -64,10 +56,10 @@ export function Summary(props: { readonly id: string }) {
     >
       <h1 className="mb-8 font-display text-[6rem] font-bold uppercase leading-none text-good">Workout complete</h1>
       <div className="mb-8 grid grid-cols-4 gap-6">
-        <Stat label="Time" value={formatClock(summary.durationSec * 1000, false)} />
-        <Stat label="Volume" value={formatVolume(summary.volume)} />
-        <Stat label="Working sets" value={`${summary.workingSets}`} />
-        <Stat label="PRs" value={`${prs}`} />
+        <StatTile label="Time" value={formatClock(summary.durationSec * 1000, false)} />
+        <StatTile label="Volume" value={formatVolume(summary.volume)} />
+        <StatTile label="Working sets" value={`${summary.workingSets}`} />
+        <StatTile label="PRs" value={`${prs}`} />
       </div>
       <ul className="min-h-0 flex-1 space-y-3 overflow-hidden" data-testid="summary-list">
         {summary.exercises.map((ex) => {

@@ -13,8 +13,8 @@ export interface GenContext {
   readonly history: ExerciseHistory;
   readonly library: Library;
   readonly available: ReadonlySet<string>;
-  /** Exercise ids used in the last sessions of this day. */
-  readonly recentIds: ReadonlySet<string>;
+  /** Exercise id → how many sessions of this day ago it was last used (0 = the last one). */
+  readonly recency: ReadonlyMap<string, number>;
 }
 
 export function usable(ctx: GenContext, exercise: ExerciseDef | undefined): exercise is ExerciseDef {

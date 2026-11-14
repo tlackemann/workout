@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DEFAULT_EQUIPMENT, EQUIPMENT_TAGS, type EquipmentTag } from './equipment.ts';
+import { DEFAULT_EQUIPMENT, EQUIPMENT_TAGS, isEquipmentTag, type EquipmentTag } from './equipment.ts';
 import { SESSION_LENGTHS } from './days.ts';
 
 const stationSchema = z
@@ -34,10 +34,8 @@ const MX_STATIONS = [
   'mx.pec_fly',
   'mx.lat_pulldown',
   'mx.low_row',
-  'mx.leg_press',
   'mx.leg_ext',
   'mx.leg_curl_seated',
-  'mx.leg_curl_lying',
   'mx.ab_crunch',
 ] as const;
 
@@ -67,14 +65,28 @@ export const DEFAULT_SETTINGS: Settings = {
   audio: { enabled: true, volume: 0.8, keepAlive: false },
 };
 
-/** Merge stored (possibly older-shaped) settings over defaults, then validate. */
+/** Equipment that was removed from the catalogue (e.g. a station Tom turned out not to own). */
+function withoutRetiredEquipment(equipment: unknown): unknown {
+  return Array.isArray(equipment) ? equipment.filter(isEquipmentTag) : equipment;
+}
+
+function withoutRetiredStations(stations: Settings['stations']): Settings['stations'] {
+  return Object.fromEntries(Object.entries(stations).filter(([tag]) => isEquipmentTag(tag)));
+}
+
+/**
+ * Merge stored (possibly older-shaped) settings over defaults, then validate.
+ * Retired equipment tags are dropped first: one stale tag must not fail validation
+ * and silently reset every other setting to its default.
+ */
 export function resolveSettings(stored: unknown): Settings {
   const partial = typeof stored === 'object' && stored !== null ? (stored as Partial<Settings>) : {};
   const merged = {
     ...DEFAULT_SETTINGS,
     ...partial,
+    ...(partial.equipment === undefined ? {} : { equipment: withoutRetiredEquipment(partial.equipment) }),
     anchors: { ...DEFAULT_SETTINGS.anchors, ...partial.anchors },
-    stations: { ...DEFAULT_SETTINGS.stations, ...partial.stations },
+    stations: withoutRetiredStations({ ...DEFAULT_SETTINGS.stations, ...partial.stations }),
     increments: { ...DEFAULT_SETTINGS.increments, ...partial.increments },
     audio: { ...DEFAULT_SETTINGS.audio, ...partial.audio },
   };

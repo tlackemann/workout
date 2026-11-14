@@ -38,7 +38,8 @@ export interface SummaryInput {
   readonly now: number;
 }
 
-const bestOf = (sets: readonly { reps: number; load: number }[]) =>
+/** Best Epley e1RM across a group of sets (0 for bodyweight / no sets). */
+export const bestE1rm = (sets: readonly { readonly reps: number; readonly load: number }[]): number =>
   sets.reduce((best, s) => Math.max(best, estimate1rm(s.load, s.reps)), 0);
 
 function exposureFrom(working: readonly SetLog[], now: number): Exposure | null {
@@ -57,8 +58,8 @@ function exposureFrom(working: readonly SetLog[], now: number): Exposure | null 
 function summarizeExercise(exerciseId: string, sets: readonly SetLog[], input: SummaryInput): ExerciseSummary {
   const working = sets.filter((s) => s.kind === 'working');
   const past = input.history[exerciseId] ?? [];
-  const bestE1rm = bestOf(working);
-  const prevBest = Math.max(0, ...past.map((e) => bestOf(e.sets)));
+  const best = bestE1rm(working);
+  const prevBest = Math.max(0, ...past.map((e) => bestE1rm(e.sets)));
   const exercise = input.library.get(exerciseId);
   const current = exposureFrom(working, input.now);
   const next =
@@ -74,7 +75,7 @@ function summarizeExercise(exerciseId: string, sets: readonly SetLog[], input: S
           now: input.now,
         })
       : null;
-  return { exerciseId, sets, bestE1rm, isPr: past.length > 0 && bestE1rm > prevBest, next };
+  return { exerciseId, sets, bestE1rm: best, isPr: past.length > 0 && best > prevBest, next };
 }
 
 export function summarize(input: SummaryInput): SessionSummary {

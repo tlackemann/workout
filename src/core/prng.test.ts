@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRng, randomSeed } from './prng.ts';
+import { shuffled, createRng, randomSeed } from './prng.ts';
 
 describe('createRng', () => {
   it('is deterministic for a seed', () => {
@@ -30,5 +30,26 @@ describe('randomSeed', () => {
     expect(Number.isInteger(s)).toBe(true);
     expect(s).toBeGreaterThan(0);
     expect(s).toBeLessThan(2 ** 32);
+  });
+});
+
+describe('shuffled', () => {
+  it('returns a permutation without touching the input', () => {
+    const input = Object.freeze([1, 2, 3, 4, 5, 6]);
+    const out = shuffled(input, createRng(42));
+    expect([...out].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(input).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it('is deterministic per seed and varies across seeds', () => {
+    const list = ['a', 'b', 'c', 'd', 'e'];
+    expect(shuffled(list, createRng(7))).toEqual(shuffled(list, createRng(7)));
+    const orders = new Set(Array.from({ length: 20 }, (_, i) => shuffled(list, createRng(i + 1)).join('')));
+    expect(orders.size).toBeGreaterThan(5);
+  });
+
+  it('handles empty and single lists', () => {
+    expect(shuffled([], createRng(1))).toEqual([]);
+    expect(shuffled(['x'], createRng(1))).toEqual(['x']);
   });
 });

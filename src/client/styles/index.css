@@ -20,7 +20,7 @@
   --color-ready: #f2b53a;
   --color-good: #8fcf6a;
 
-  /* Day hues: Home tiles only. */
+  /* Day hues: Home tiles and Progress charts, always next to a label (Push/Legs are close for colour-blind eyes). */
   --color-push: #c8553d;
   --color-pull: #3d7fb8;
   --color-legs: #7f9a3c;

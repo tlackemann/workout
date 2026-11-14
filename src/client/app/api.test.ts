@@ -34,6 +34,14 @@ describe('api client', () => {
     await expect(api.settings()).rejects.toMatchObject({ status: 0, message: expect.stringMatching(/reach the server/) });
   });
 
+  it('asks for stats in the device time zone', async () => {
+    respond(200, { success: true, data: { workouts: 0 }, error: null });
+    await api.stats();
+    const [url] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    expect(url).toBe(`/api/stats?tz=${encodeURIComponent(tz)}`);
+  });
+
   it('builds media URLs', () => {
     expect(mediaUrl('bench-press', 1)).toBe('/api/media/bench-press/1');
   });

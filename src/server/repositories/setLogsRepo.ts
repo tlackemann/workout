@@ -1,6 +1,8 @@
-import { and, asc, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { Db } from '../db/client.ts';
-import { setLogs } from '../db/schema.ts';
+import { sessions, setLogs } from '../db/schema.ts';
+import { FINISHED } from './sessionsRepo.ts';
+import type { WorkingSetFact } from '../../core/stats/types.ts';
 import type { SetLog } from '../../core/session/types.ts';
 import type { Exposure, ExerciseHistory } from '../../core/progression/types.ts';
 
@@ -11,6 +13,8 @@ export interface SetLogsRepository {
   forSession(sessionId: string): SetLog[];
   /** Working-set exposures per exercise, most recent first, excluding one session. */
   history(excludeSessionId?: string): ExerciseHistory;
+  /** Working sets of finished sessions only (no abandoned or in-progress workouts). */
+  finishedWorkingSets(): WorkingSetFact[];
 }
 
 const toSetLog = (r: LogRow): SetLog => ({
@@ -73,6 +77,20 @@ export function createSetLogsRepo(db: Db): SetLogsRepository {
         .orderBy(asc(setLogs.position), asc(setLogs.setIndex))
         .all()
         .map(toSetLog);
+    },
+    finishedWorkingSets() {
+      return db
+        .select({
+          sessionId: setLogs.sessionId,
+          exerciseId: setLogs.exerciseId,
+          reps: setLogs.reps,
+          load: setLogs.load,
+          loggedAt: setLogs.loggedAt,
+        })
+        .from(setLogs)
+        .innerJoin(sessions, eq(sessions.id, setLogs.sessionId))
+        .where(and(eq(setLogs.kind, 'working'), inArray(sessions.status, [...FINISHED])))
+        .all();
     },
     history(excludeSessionId) {
       const working = eq(setLogs.kind, 'working');

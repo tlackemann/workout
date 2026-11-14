@@ -69,6 +69,25 @@ describe('Player', () => {
     expect(phase()).toBe('work');
   });
 
+  it('"Up next" after the last warm-up shows the working weight the set then starts with', async () => {
+    const warmups = activeDto().plan.items[0]!.sets.filter((s) => s.kind === 'warmup');
+    const lastWarmup = warmups.length - 1;
+    const working = activeDto().plan.items[0]!.sets[warmups.length]!;
+    await mount(
+      activeDto({
+        phase: 'rest',
+        cursor: { item: 0, set: lastWarmup },
+        endsAt: Date.now() + 60_000,
+        load: warmups[lastWarmup]!.targetLoad,
+        draft: { cursor: { item: 0, set: lastWarmup }, reps: 1, load: warmups[lastWarmup]!.targetLoad },
+      }),
+    );
+    expect(screen.getByTestId('up-next').textContent).toContain(`${working.targetLoad} lb`);
+    act(() => KEYS.ok());
+    expect(phase()).toBe('work');
+    expect(screen.getByTestId('load').textContent).toBe(`${working.targetLoad} lb`);
+  });
+
   it('saves each revision to the server (debounced) and mirrors it locally', async () => {
     await mount();
     act(() => KEYS.ok());

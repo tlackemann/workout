@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { createSession, reduce } from './reducer.ts';
-import { currentSet, elapsedMs, remainingMs } from './selectors.ts';
+import { currentSet, elapsedMs, remainingMs, upNext } from './selectors.ts';
 import type { SessionEvent, SessionState } from './types.ts';
 import type { Plan, PlanItem, PlanSet } from '../plan.ts';
 
@@ -328,5 +329,39 @@ describe('review regressions', () => {
     const deadline = s.endsAt!;
     s = reduce(s, tick(deadline + 3_600_000));
     expect(s).toMatchObject({ phase: 'done', paused: null, overlay: 'none', endedAt: deadline });
+  });
+});
+
+describe('up next ↔ started set', () => {
+  const step = fc.oneof(
+    fc.constant({ kind: 'ok' as const }),
+    fc.constant({ kind: 'tick' as const }),
+    fc.integer({ min: -2, max: 2 }).map((delta) => ({ kind: 'reps' as const, delta })),
+    fc.integer({ min: 0, max: 60 }).map((n) => ({ kind: 'load' as const, load: n * 5 })),
+  );
+
+  it('the load shown as "up next" during rest is the load the next set starts with', () => {
+    fc.assert(
+      fc.property(fc.array(step, { maxLength: 40 }), (steps) => {
+        let s = start();
+        let now = T0;
+        for (const st of steps) {
+          now += 1000;
+          if (s.phase === 'rest') {
+            const next = upNext(s);
+            if (next) {
+              expect(reduce(s, ok(now)).load).toBe(next.load);
+              expect(reduce(s, tick(s.endsAt!)).load).toBe(next.load);
+            }
+          }
+          const event: SessionEvent =
+            st.kind === 'ok' ? ok(now)
+            : st.kind === 'tick' ? tick(s.endsAt ?? now)
+            : st.kind === 'reps' ? { type: 'ADJ_REPS', delta: st.delta, now }
+            : { type: 'SET_LOAD', load: st.load, now };
+          s = reduce(s, event);
+        }
+      }),
+    );
   });
 });

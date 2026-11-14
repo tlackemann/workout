@@ -2,13 +2,13 @@ import type { Day, SessionLength } from '../days.ts';
 import type { Library } from '../library/index.ts';
 import type { ExerciseDef } from '../library/schema.ts';
 import type { Plan, PlanItem } from '../plan.ts';
-import { createRng } from '../prng.ts';
+import { createRng, shuffled } from '../prng.ts';
 import type { ExerciseHistory } from '../progression/types.ts';
 import type { Prefs, Settings } from '../settings.ts';
 import { buildItem } from './buildItem.ts';
 import { usable, type GenContext } from './context.ts';
 import { BUDGET_SEC, MAX_PRIORITY, planSeconds } from './estimate.ts';
-import { pickAccessory } from './rank.ts';
+import { pickAccessory, RECENCY_PENALTY } from './rank.ts';
 import type { Slot, Templates } from './types.ts';
 
 export interface GenerateInput {
@@ -25,7 +25,19 @@ export interface GenerateInput {
   readonly templates: Templates;
 }
 
-const RECENT_SESSIONS = 2;
+/** How many past sessions of a day count as "recent" (one recency penalty step each). */
+export const RECENT_SESSIONS = RECENCY_PENALTY.length;
+/** Mixed into the seed so the ordering shuffle doesn't disturb the exercise picks. */
+const ORDER_SALT = 0x5bd1e995;
+
+/** Exercise id → sessions ago it was last used (the most recent use wins). */
+function recencyOf(recent: GenerateInput['recent']): ReadonlyMap<string, number> {
+  const entries = recent
+    .slice(0, RECENT_SESSIONS)
+    .flatMap((ids, ago) => ids.map((id) => [id, ago] as const))
+    .reverse();
+  return new Map(entries);
+}
 
 export function makeContext(input: Omit<GenerateInput, 'length' | 'seed' | 'templates'>): GenContext {
   return {
@@ -36,7 +48,7 @@ export function makeContext(input: Omit<GenerateInput, 'length' | 'seed' | 'temp
     history: input.history,
     library: input.library,
     available: new Set(input.settings.equipment),
-    recentIds: new Set(input.recent.slice(0, RECENT_SESSIONS).flat()),
+    recency: recencyOf(input.recent),
   };
 }
 
@@ -87,6 +99,18 @@ function trimToBudget(items: readonly PlanItem[], slots: readonly Slot[], budget
   return { kept, trimmed };
 }
 
+/**
+ * Session order: anchors first in template order (heavy lifts while fresh), then the
+ * accessories shuffled, then pinned-last slots (finisher, core). Positions follow the order.
+ */
+function arrange(items: readonly PlanItem[], slots: readonly Slot[], rng: () => number): PlanItem[] {
+  const pinnedLast = (item: PlanItem) => slots.find((s) => s.id === item.slotId)?.pin === 'last';
+  const anchors = items.filter((i) => i.role === 'anchor');
+  const accessories = items.filter((i) => i.role !== 'anchor');
+  const middle = shuffled(accessories.filter((i) => !pinnedLast(i)), rng);
+  return [...anchors, ...middle, ...accessories.filter(pinnedLast)].map((item, position) => ({ ...item, position }));
+}
+
 export function generate(input: GenerateInput): Plan {
   const ctx = makeContext(input);
   const slots = input.templates[input.day].slots.filter((s) => s.priority <= MAX_PRIORITY[input.length]);
@@ -96,7 +120,7 @@ export function generate(input: GenerateInput): Plan {
     day: input.day,
     length: input.length,
     seed: input.seed,
-    items: kept,
+    items: arrange(kept, slots, createRng((input.seed ^ ORDER_SALT) >>> 0)),
     droppedSlots: dropped,
     trimmedSlots: trimmed,
     estimatedSec: planSeconds(kept, input.library),

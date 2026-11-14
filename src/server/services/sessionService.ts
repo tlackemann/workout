@@ -1,7 +1,7 @@
 import type { Day, SessionLength } from '../../core/days.ts';
 import { nextDay } from '../../core/days.ts';
 import { alternatives } from '../../core/generator/alternatives.ts';
-import { generate, type GenerateInput } from '../../core/generator/generate.ts';
+import { generate, RECENT_SESSIONS, type GenerateInput } from '../../core/generator/generate.ts';
 import type { PlanItem } from '../../core/plan.ts';
 import { createSession } from '../../core/session/reducer.ts';
 import { SESSION_SCHEMA_VERSION, type SessionState } from '../../core/session/types.ts';
@@ -9,8 +9,6 @@ import { summarize, type SessionSummary } from '../../core/summary.ts';
 import { HttpError } from '../http.ts';
 import type { Deps } from './deps.ts';
 import { exerciseIdsOf, toDto, type SessionDto } from './sessionDto.ts';
-
-const RECENT_PER_DAY = 2;
 
 function generationInput(deps: Deps, day: Day, length: SessionLength, seed: number, excludeSessionId?: string): GenerateInput {
   return {
@@ -21,7 +19,7 @@ function generationInput(deps: Deps, day: Day, length: SessionLength, seed: numb
     settings: deps.repos.settings.get(),
     prefs: deps.repos.prefs.all(),
     history: deps.repos.setLogs.history(excludeSessionId),
-    recent: deps.repos.sessions.recentFinished(day, RECENT_PER_DAY).map(exerciseIdsOf),
+    recent: deps.repos.sessions.recentFinished(day, RECENT_SESSIONS).map(exerciseIdsOf),
     library: deps.library,
     templates: deps.templates,
   };

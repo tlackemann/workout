@@ -140,12 +140,89 @@ describe('generate', () => {
           const exerciseIds = ids(plan);
           expect(new Set(exerciseIds).size).toBe(exerciseIds.length);
           for (const id of exerciseIds) expect(isEligible(library.get(id)!.requires, have)).toBe(true);
-          const positions = plan.items.map((i) => i.position);
-          expect(new Set(positions).size).toBe(positions.length);
+          expect(plan.items.map((i) => i.position)).toEqual(plan.items.map((_, i) => i));
         },
       ),
       { numRuns: 300 },
     );
+  });
+});
+
+describe('variety', () => {
+  const slotOrder = (plan: ReturnType<typeof generate>) => plan.items.map((i) => i.slotId).join(',');
+  const seeds = Array.from({ length: 30 }, (_, i) => i + 1);
+
+  it('keeps anchors first and pinned slots (finisher, core) last', () => {
+    for (const seed of seeds) {
+      const push = generate(input({ seed, length: 'long' }));
+      expect(push.items.slice(0, 2).map((i) => i.role)).toEqual(['anchor', 'anchor']);
+      if (push.items.some((i) => i.slotId === 'push.finisher')) expect(push.items.at(-1)?.slotId).toBe('push.finisher');
+      const legs = generate(input({ seed, day: 'legs', length: 'long' }));
+      expect(ids(legs).slice(0, 2)).toEqual(['back-squat', 'romanian-deadlift']);
+      if (legs.items.some((i) => i.slotId === 'legs.core')) expect(legs.items.at(-1)?.slotId).toBe('legs.core');
+    }
+  });
+
+  it('shuffles the accessory order between sessions', () => {
+    for (const day of DAYS) {
+      const orders = new Set(seeds.slice(0, 20).map((seed) => slotOrder(generate(input({ day, seed })))));
+      expect(orders.size, day).toBeGreaterThan(2);
+    }
+  });
+
+  it('renumbers positions to match the shuffled order', () => {
+    const plan = generate(input({ seed: 99, length: 'long' }));
+    expect(plan.items.map((i) => i.position)).toEqual(plan.items.map((_, i) => i));
+  });
+
+  it('keeps the picks themselves independent of the ordering shuffle', () => {
+    for (const seed of seeds.slice(0, 10)) {
+      const plan = generate(input({ seed }));
+      const bySlot = new Map(plan.items.map((i) => [i.slotId, i.exerciseId]));
+      expect(bySlot.size).toBe(plan.items.length);
+    }
+  });
+
+  it('penalises recency in steps: last session most, three sessions ago least', () => {
+    const count = (recent: string[][]) =>
+      seeds.concat(seeds.map((s) => s + 100)).filter((seed) => ids(generate(input({ seed, recent }))).includes('triceps-pushdown')).length;
+    const last = count([['triceps-pushdown'], [], []]);
+    const threeAgo = count([[], [], ['triceps-pushdown']]);
+    const never = count([]);
+    expect(last).toBeLessThan(threeAgo);
+    expect(threeAgo).toBeLessThanOrEqual(never);
+  });
+
+  it('reaches beyond the slot’s list when every candidate was trained last session', () => {
+    // Hamstrings lists only the seated curl; once that was just done, a widened hinge rotates in.
+    let rotated = 0;
+    for (const seed of seeds) {
+      const plan = generate(input({ seed, day: 'legs', recent: [['seated-leg-curl']] }));
+      const hams = plan.items.find((i) => i.slotId === 'legs.hams');
+      if (hams && hams.exerciseId !== 'seated-leg-curl') rotated++;
+    }
+    expect(rotated).toBeGreaterThan(25);
+    const fresh = generate(input({ day: 'legs' })).items.find((i) => i.slotId === 'legs.hams');
+    expect(fresh?.exerciseId).toBe('seated-leg-curl');
+  });
+
+  it('lets a same-family variation in rather than repeat last session’s pick', () => {
+    // The lat pulldown anchor blocks the other pulldowns by family, leaving one strict option.
+    let rotated = 0;
+    for (const seed of seeds) {
+      const plan = generate(input({ seed, day: 'pull', recent: [['straight-arm-pulldown']] }));
+      const lats = plan.items.find((i) => i.slotId === 'pull.vertical-2');
+      if (lats && lats.exerciseId !== 'straight-arm-pulldown') rotated++;
+    }
+    expect(rotated).toBeGreaterThan(25);
+  });
+
+  it('never widens into a second lift from a family already in the plan (no deadlift after RDL)', () => {
+    for (const seed of seeds) {
+      const plan = generate(input({ seed, day: 'legs', length: 'long', recent: [['seated-leg-curl', 'good-morning']] }));
+      const families = plan.items.map((i) => library.get(i.exerciseId)!.family);
+      expect(families.filter((f) => f === 'deadlift'), String(seed)).toHaveLength(1);
+    }
   });
 });
 

@@ -18,7 +18,7 @@ describe('loadHint', () => {
   });
 
   it('shows the pin for stacks and nothing for bodyweight', () => {
-    expect(loadHint(requireExercise(lib, 'leg-press'), 120, DEFAULT_SETTINGS)).toBe('Pin at 120');
+    expect(loadHint(requireExercise(lib, 'leg-extension'), 120, DEFAULT_SETTINGS)).toBe('Pin at 120');
     expect(loadHint(requireExercise(lib, 'pushup'), 0, DEFAULT_SETTINGS)).toBeNull();
   });
 });

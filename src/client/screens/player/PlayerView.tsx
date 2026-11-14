@@ -108,14 +108,13 @@ function UpNext(props: { readonly state: SessionState }) {
   if (!next) return <div className="text-[2rem] text-dim">Last set: nice work.</div>;
   const exercise = library.get(next.item.exerciseId);
   if (!exercise) return null;
-  const load = props.state.draft && next.item === currentItem(props.state) && next.set.kind === 'working' ? props.state.draft.load : next.set.targetLoad;
-  const hint = loadHint(exercise, load, settings);
+  const hint = loadHint(exercise, next.load, settings);
   return (
     <div className="rounded-[1.25rem] border-2 border-line px-8 py-5" data-testid="up-next">
       <div className="text-[1.75rem] font-semibold text-rest">Up next</div>
       <div className="font-display text-[3rem] font-semibold leading-tight">{exercise.name}</div>
       <div className="tabular text-[2rem] text-dim">
-        {setLabel(next.item, next.setIndex)} · {repsLabel(next.item, next.set)} × {formatLoad(load, exercise.load)}
+        {setLabel(next.item, next.setIndex)} · {repsLabel(next.item, next.set)} × {formatLoad(next.load, exercise.load)}
       </div>
       {hint && <div className="text-[1.75rem] text-dim">{hint}</div>}
     </div>

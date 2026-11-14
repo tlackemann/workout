@@ -6,6 +6,7 @@ import { rateLimit, requireJson } from './middleware.ts';
 import { mediaRoutes, type MediaDirs } from './routes/media.ts';
 import { sessionRoutes } from './routes/sessions.ts';
 import { settingsRoutes } from './routes/settings.ts';
+import { statsRoutes } from './routes/stats.ts';
 import type { Deps } from './services/deps.ts';
 
 export interface AppOptions {
@@ -27,6 +28,7 @@ export function createApp(deps: Deps, options: AppOptions) {
     .get('/health', (c) => ok(c, { status: 'ok', time: deps.now() }))
     .route('/sessions', sessionRoutes(deps))
     .route('/media', mediaRoutes(deps, options.media))
+    .route('/stats', statsRoutes(deps))
     .route('/', settingsRoutes(deps));
 
   const app = new Hono()

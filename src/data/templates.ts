@@ -15,7 +15,7 @@ export const TEMPLATES: Templates = {
       { id: 'push.triceps', label: 'Triceps', role: 'accessory', candidates: ['triceps-pushdown', 'triceps-pushdown-rope', 'triceps-pushdown-vbar', 'ez-skullcrusher', 'close-grip-ez-press', 'close-grip-bench', 'rope-overhead-extension', 'dips-triceps'], widen: ['triceps'], sets: 3, repMin: 8, repMax: 12, restSec: 75, priority: 2 },
       { id: 'push.chest-iso', label: 'Chest isolation', role: 'accessory', candidates: ['pec-fly', 'pushup-handles', 'dips-chest'], widen: ['chest_fly'], sets: 3, repMin: 10, repMax: 15, restSec: 75, priority: 3 },
       { id: 'push.side-delt', label: 'Side delts', role: 'accessory', candidates: ['cable-lateral-raise', 'db-lateral-raise', 'upright-cable-row', 'upright-barbell-row', 'low-pulley-delt-raise'], widen: ['lateral_raise'], sets: 3, repMin: 12, repMax: 15, restSec: 60, priority: 3 },
-      { id: 'push.finisher', label: 'Finisher', role: 'accessory', candidates: ['pushup-close-wide', 'incline-pushup'], sets: 2, repMin: 8, repMax: 30, restSec: 60, priority: 4, amrap: true },
+      { id: 'push.finisher', label: 'Finisher', role: 'accessory', candidates: ['pushup-close-wide', 'incline-pushup'], sets: 2, repMin: 8, repMax: 30, restSec: 60, priority: 4, amrap: true, pin: 'last' },
     ],
   },
   pull: {
@@ -33,14 +33,14 @@ export const TEMPLATES: Templates = {
   legs: {
     day: 'legs',
     slots: [
-      { id: 'legs.a1', label: 'Squat', role: 'anchor', candidates: ['back-squat', 'box-squat', 'front-squat'], fallbacks: ['leg-press'], sets: 4, repMin: 5, repMax: 8, restSec: 180, priority: 1 },
+      { id: 'legs.a1', label: 'Squat', role: 'anchor', candidates: ['back-squat', 'box-squat', 'front-squat'], fallbacks: ['barbell-hack-squat'], sets: 4, repMin: 5, repMax: 8, restSec: 180, priority: 1 },
       { id: 'legs.a2', label: 'Hinge', role: 'anchor', candidates: ['romanian-deadlift', 'deadlift', 'stiff-leg-deadlift'], fallbacks: ['good-morning', 'hip-thrust'], sets: 4, repMin: 5, repMax: 8, restSec: 150, priority: 1 },
-      { id: 'legs.quad', label: 'Quads', role: 'accessory', candidates: ['leg-press', 'narrow-leg-press', 'barbell-lunge', 'barbell-step-up', 'db-lunge'], widen: ['squat', 'lunge'], sets: 3, repMin: 8, repMax: 12, restSec: 120, priority: 2 },
-      { id: 'legs.hams', label: 'Hamstrings', role: 'accessory', candidates: ['seated-leg-curl', 'lying-leg-curl'], widen: ['ham_curl', 'hinge'], sets: 3, repMin: 10, repMax: 15, restSec: 60, priority: 2 },
+      { id: 'legs.quad', label: 'Quads', role: 'accessory', candidates: ['bulgarian-split-squat', 'barbell-hack-squat', 'zercher-squat', 'barbell-lunge', 'barbell-step-up', 'db-lunge'], widen: ['squat', 'lunge'], sets: 3, repMin: 8, repMax: 12, restSec: 120, priority: 2 },
+      { id: 'legs.hams', label: 'Hamstrings', role: 'accessory', candidates: ['seated-leg-curl'], widen: ['ham_curl', 'hinge'], sets: 3, repMin: 10, repMax: 15, restSec: 60, priority: 2 },
       { id: 'legs.quad-iso', label: 'Quad isolation', role: 'accessory', candidates: ['leg-extension'], widen: ['quad_iso'], sets: 3, repMin: 12, repMax: 15, restSec: 60, priority: 3 },
       { id: 'legs.glutes', label: 'Glutes', role: 'accessory', candidates: ['hip-thrust', 'glute-bridge', 'pull-through', 'good-morning'], widen: ['glute'], sets: 3, repMin: 8, repMax: 12, restSec: 90, priority: 3 },
-      { id: 'legs.calves', label: 'Calves', role: 'accessory', candidates: ['leg-press-calf-raise', 'standing-calf-raise', 'rocking-calf-raise'], widen: ['calf'], sets: 3, repMin: 12, repMax: 20, restSec: 60, priority: 4 },
-      { id: 'legs.core', label: 'Core', role: 'accessory', candidates: ['ab-crunch-machine', 'cable-crunch', 'barbell-rollout', 'hanging-leg-raise'], widen: ['core'], sets: 3, repMin: 12, repMax: 20, restSec: 60, priority: 4 },
+      { id: 'legs.calves', label: 'Calves', role: 'accessory', candidates: ['seated-calf-raise', 'standing-calf-raise', 'rocking-calf-raise'], widen: ['calf'], sets: 3, repMin: 12, repMax: 20, restSec: 60, priority: 4 },
+      { id: 'legs.core', label: 'Core', role: 'accessory', candidates: ['ab-crunch-machine', 'cable-crunch', 'barbell-rollout', 'hanging-leg-raise'], widen: ['core'], sets: 3, repMin: 12, repMax: 20, restSec: 60, priority: 4, pin: 'last' },
     ],
   },
 };

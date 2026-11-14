@@ -1,5 +1,6 @@
 import type { Plan } from '../plan.ts';
 import { isFinalSet, itemAt, nextCursor, setAt } from './cursor.ts';
+import { startingLoad } from './selectors.ts';
 import { FINAL_LOG_WINDOW_SEC, type Cursor, type SessionState, type SetLog } from './types.ts';
 
 const ms = (sec: number) => sec * 1000;
@@ -27,20 +28,8 @@ export function commitDraft(state: SessionState, now: number): SessionState {
   return { ...state, logs: [...others, log], draft: null };
 }
 
-/** Load for a new set: carry an adjusted load across consecutive working sets of one exercise. */
-function loadFor(state: SessionState, cursor: Cursor): number {
-  // Weight adjusted during get-ready belongs to the set that's about to start.
-  if (state.phase === 'intro' && state.cursor.item === cursor.item && state.cursor.set === cursor.set) return state.load;
-  const set = setAt(state.plan, cursor);
-  const prev = state.draft ?? null;
-  const prevSet = prev && setAt(state.plan, prev.cursor);
-  const sameItem = prev?.cursor.item === cursor.item;
-  if (prev && prevSet && set && sameItem && prevSet.kind === 'working' && set.kind === 'working') return prev.load;
-  return set?.targetLoad ?? state.load;
-}
-
 export function startWork(state: SessionState, cursor: Cursor, now: number): SessionState {
-  const load = loadFor(state, cursor);
+  const load = startingLoad(state, cursor);
   return { ...commitDraft(state, now), cursor, phase: 'work', phaseStartedAt: now, endsAt: null, load };
 }
 

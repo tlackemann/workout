@@ -17,9 +17,9 @@ describe('loadOptions', () => {
   });
 
   it('stack options follow the station profile', () => {
-    const opts = loadOptions(requireExercise(lib, 'leg-press'), {
+    const opts = loadOptions(requireExercise(lib, 'leg-extension'), {
       ...s,
-      stations: { ...s.stations, 'mx.leg_press': { min: 20, max: 60, step: 20 } },
+      stations: { ...s.stations, 'mx.leg_ext': { min: 20, max: 60, step: 20 } },
     });
     expect(opts).toEqual([20, 40, 60]);
   });
@@ -40,7 +40,7 @@ describe('loadIncrement', () => {
   });
 
   it('uses the station step for stacks and zero for bodyweight', () => {
-    expect(loadIncrement(requireExercise(lib, 'leg-press'), s)).toBe(10);
+    expect(loadIncrement(requireExercise(lib, 'leg-extension'), s)).toBe(10);
     expect(loadIncrement(requireExercise(lib, 'pushup'), s)).toBe(0);
   });
 });

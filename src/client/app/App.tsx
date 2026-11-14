@@ -7,6 +7,7 @@ import { History } from '../screens/History.tsx';
 import { Home } from '../screens/Home.tsx';
 import { Player } from '../screens/player/Player.tsx';
 import { Preview } from '../screens/Preview.tsx';
+import { Progress } from '../screens/progress/Progress.tsx';
 import { Settings } from '../screens/Settings.tsx';
 import { Summary } from '../screens/Summary.tsx';
 import { api } from './api.ts';
@@ -36,6 +37,9 @@ function Routes() {
       return <Settings />;
     case 'history':
       return <History />;
+    case 'progress':
+      // No key: switching tabs must not remount (and refetch) the screen.
+      return <Progress tab={route.tab} />;
     case 'notFound':
       return (
         <Centered>

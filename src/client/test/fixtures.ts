@@ -4,6 +4,8 @@ import type { Plan } from '../../core/plan.ts';
 import { createSession } from '../../core/session/reducer.ts';
 import type { SessionState } from '../../core/session/types.ts';
 import { DEFAULT_SETTINGS } from '../../core/settings.ts';
+import { buildStats } from '../../core/stats/index.ts';
+import type { SessionFact, StatsDto, WorkingSetFact } from '../../core/stats/types.ts';
 import { LIBRARY } from '../../data/library.ts';
 import { TEMPLATES } from '../../data/templates.ts';
 import type { SessionDto } from '../app/api.ts';
@@ -35,4 +37,28 @@ export function activeDto(stateOverrides: Partial<SessionState> = {}): SessionDt
   const p = plan('push');
   const state = { ...createSession('s1', p, Date.now(), 10), ...stateOverrides };
   return sessionDto({ status: 'active', plan: p, startedAt: NOW }, state);
+}
+
+/**
+ * Progress data from the real stats pipeline: four weeks of PPL with bench progressing,
+ * an ended-early pull session, and a retired leg-press log.
+ */
+export function statsDto(): StatsDto {
+  const DAY = 86_400_000;
+  const plan: [string, SessionFact['day'], string, number][] = [
+    ['p1', 'push', 'bench-press', 135],
+    ['l1', 'legs', 'leg-press', 180],
+    ['p2', 'push', 'bench-press', 145],
+    ['u1', 'pull', 'barbell-row', 115],
+    ['p3', 'push', 'bench-press', 140],
+    ['p4', 'push', 'bench-press', 155],
+  ];
+  const sessions: SessionFact[] = plan.map(([id, day], i) => {
+    const endedAt = NOW - (plan.length - i) * 4 * DAY;
+    return { id, day, status: id === 'u1' ? 'ended_early' : 'completed', createdAt: endedAt - 2 * 3_600_000, startedAt: endedAt - 3_600_000, endedAt };
+  });
+  const sets: WorkingSetFact[] = plan.flatMap(([id, , exerciseId, load]) =>
+    [5, 5, 4].map((reps) => ({ sessionId: id, exerciseId, reps, load, loggedAt: 0 })),
+  );
+  return buildStats({ sessions, sets, library, now: NOW, tz: 'UTC' });
 }

@@ -91,10 +91,10 @@ describe('computeTarget — barbell', () => {
 });
 
 describe('computeTarget — stack', () => {
-  const press = requireExercise(lib, 'leg-press');
+  const press = requireExercise(lib, 'leg-extension');
   const settings = {
     ...DEFAULT_SETTINGS,
-    stations: { ...DEFAULT_SETTINGS.stations, 'mx.leg_press': { min: 10, max: 200, step: 10 } },
+    stations: { ...DEFAULT_SETTINGS.stations, 'mx.leg_ext': { min: 10, max: 200, step: 10 } },
   };
 
   it('adds one plate when topped out', () => {

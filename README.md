@@ -73,6 +73,7 @@ is what keeps the TV awake. If you serve the app over HTTPS, Wake Lock works too
 | Player: work | weight | — | **set done** | pause menu |
 | Player: rest | weight | reps | start next set now | pause menu |
 | Pause menu | — | move | Resume · +30 s · skip set/warm-ups/exercise · swap · end | resume |
+| Progress | switch view (Lifts · Consistency · Sessions · Muscles) | Lifts: pick an exercise | — | home |
 
 The normal flow needs only **one OK per set**: the log is pre-filled with the target and auto-saves when rest
 ends. If you missed reps, press ▼ while resting. Leaving mid-workout is safe: Home shows **Resume**, a reload
@@ -94,7 +95,7 @@ pauses.
 
 | Piece | Where | Notes |
 |---|---|---|
-| Domain core (pure, no I/O) | `src/core/` | generator, double progression, plate DP solver, session state machine, summary; shared by client and server |
+| Domain core (pure, no I/O) | `src/core/` | generator, double progression, plate DP solver, session state machine, summary, progress stats; shared by client and server |
 | Data | `src/data/` | ~80 curated exercises (equipment requirements as AND-of-ORs), PPL slot templates |
 | API | `src/server/` | Hono + Drizzle + SQLite, zod-validated, `{ success, data, error }` envelope, repositories |
 | TV UI | `src/client/` | React + Tailwind v4, 10-foot UI scaled from the viewport, Norigin spatial navigation for menus |
@@ -103,8 +104,14 @@ pauses.
 - The **player** is a pure reducer: every event carries `now`, timers are deadlines (never tick counting), and each
   revision is mirrored to localStorage and saved to the server (stale revisions get a 409).
 - The **generator** keeps 1–2 fixed anchor lifts per day and fills accessory slots with a seeded, weighted pick:
-  favourites up, recently used down, banned out, no repeated movement family, and slots that relax rather than fail
-  when equipment is missing. Sessions are trimmed by priority to fit Quick / Standard / Long.
+  favourites up, recently used down (graded over the last three sessions of that day), banned out, no repeated
+  movement family, and slots that relax rather than fail when equipment is missing. If a slot would repeat last
+  session's exercise anyway, related variations and the slot's wider movement pattern rotate in. Sessions are
+  trimmed by priority to fit Quick / Standard / Long, then the accessories are shuffled (anchors stay first;
+  finisher and core stay last).
+- **Progress** (`GET /api/stats`, pure functions in `src/core/stats/`): estimated 1RM and top set per lift with PRs,
+  a 26-week heatmap and weekly streak (in the TV's time zone), workout length and volume per day, and working sets
+  per muscle over the last four weeks. Charts are static SVG, no chart library.
 - **Progression**: hit the top of the rep range on every set → add weight (5 lb upper, 10 lb lower, one plate on
   stacks, next loadable total for bars). Two failed sessions in a row → −10%. More than six weeks away → −10%.
   Bodyweight moves level up through variants (incline → floor → handles → decline push-ups).
