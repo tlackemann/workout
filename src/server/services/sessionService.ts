@@ -7,6 +7,7 @@ import { createSession } from '../../core/session/reducer.ts';
 import { SESSION_SCHEMA_VERSION, type SessionState } from '../../core/session/types.ts';
 import { summarize, type SessionSummary } from '../../core/summary.ts';
 import { HttpError } from '../http.ts';
+import { FINISHED } from '../repositories/sessionsRepo.ts';
 import type { Deps } from './deps.ts';
 import { exerciseIdsOf, toDto, type SessionDto } from './sessionDto.ts';
 
@@ -116,6 +117,17 @@ export function saveState(deps: Deps, id: string, state: SessionState): SaveResu
     });
   });
   return { kind: 'saved', session: toDto(updated ?? row) };
+}
+
+/**
+ * Delete a finished workout from history. Its set logs go with it (FK cascade), so stats and
+ * future progression targets are recomputed from what remains. Planned/active sessions are refused.
+ */
+export function removeFinished(deps: Deps, id: string): { readonly id: string } {
+  const row = requireSession(deps, id);
+  if (!FINISHED.includes(row.status)) throw new HttpError(409, 'Only finished workouts can be deleted');
+  deps.repos.sessions.remove(id);
+  return { id };
 }
 
 export function summaryFor(deps: Deps, id: string): SessionSummary {

@@ -189,3 +189,47 @@ test('charts finished workouts on the Progress screen with only the remote', asy
   await page.goBack();
   await expect(page.getByTestId('home')).toBeVisible();
 });
+
+test('deletes a finished workout from History with only the remote', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('home')).toBeVisible();
+  await press(page, 'ArrowDown');
+  for (let i = 0; i < 3 && (await page.getByTestId('go-history').getAttribute('data-focused')) !== 'true'; i++) {
+    await press(page, 'ArrowLeft');
+  }
+  await press(page, 'Enter');
+  await expect(page.getByTestId('history')).toBeVisible();
+
+  const rows = page.locator('[data-testid^="session-"]');
+  await expect(rows.first()).toHaveAttribute('data-focused', 'true');
+  const count = await rows.count();
+  const id = (await rows.first().getAttribute('data-testid'))!.replace('session-', '');
+
+  // ▶ reaches the row's Delete; the confirmation defaults to keeping it, and the TV's Back closes it.
+  await press(page, 'ArrowRight');
+  await expect(page.getByTestId(`delete-${id}`)).toHaveAttribute('data-focused', 'true');
+  await press(page, 'Enter');
+  await expect(page.getByTestId('confirm-delete')).toBeVisible();
+  await expect(page.getByTestId('confirm-delete-cancel')).toHaveAttribute('data-focused', 'true');
+  await page.goBack();
+  await expect(page.getByTestId('confirm-delete')).toBeHidden();
+  await expect(page.getByTestId('history')).toBeVisible();
+  await expect(page.getByTestId(`delete-${id}`)).toHaveAttribute('data-focused', 'true');
+
+  // Delete for real: the row goes and focus lands on its neighbour.
+  await press(page, 'Enter');
+  await press(page, 'ArrowRight');
+  await expect(page.getByTestId('confirm-delete-yes')).toHaveAttribute('data-focused', 'true');
+  await press(page, 'Enter');
+  await expect(page.getByTestId('confirm-delete')).toBeHidden();
+  await expect(rows).toHaveCount(count - 1);
+  await expect(page.getByTestId(`session-${id}`)).toHaveCount(0);
+  if (count > 1) await expect(rows.first()).toHaveAttribute('data-focused', 'true');
+
+  // Gone from the server too, and Back still returns Home in one step.
+  await page.reload();
+  await expect(page.getByTestId('history')).toBeVisible();
+  await expect(page.getByTestId(`session-${id}`)).toHaveCount(0);
+  await page.goBack();
+  await expect(page.getByTestId('home')).toBeVisible();
+});

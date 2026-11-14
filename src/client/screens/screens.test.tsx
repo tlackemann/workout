@@ -17,6 +17,7 @@ const api = vi.hoisted(() => ({
   saveSettings: vi.fn(),
   savePref: vi.fn(),
   stats: vi.fn(),
+  deleteSession: vi.fn(),
 }));
 
 vi.mock('../app/api.ts', async (importOriginal) => {
@@ -173,6 +174,50 @@ describe('History', () => {
   it('has an empty state', async () => {
     api.sessions.mockResolvedValue([]);
     renderAt('/history', <History />);
+    await screen.findByText('No finished workouts yet.');
+  });
+
+  it('deletes a workout only after confirming', async () => {
+    api.sessions.mockResolvedValue([
+      sessionDto({ id: 'a1', status: 'completed', endedAt: NOW }),
+      sessionDto({ id: 'b2', day: 'legs', status: 'completed', endedAt: NOW - 86_400_000 }),
+    ]);
+    api.deleteSession.mockResolvedValue({ id: 'a1' });
+    renderAt('/history', <History />);
+    await screen.findByTestId('history');
+
+    // Cancelling keeps it.
+    fireEvent.click(screen.getByTestId('delete-a1'));
+    expect((await screen.findByTestId('confirm-delete')).textContent).toContain('Push');
+    fireEvent.click(screen.getByTestId('confirm-delete-cancel'));
+    await waitFor(() => expect(screen.queryByTestId('confirm-delete')).toBeNull());
+    expect(api.deleteSession).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('delete-a1'));
+    fireEvent.click(await screen.findByTestId('confirm-delete-yes'));
+    await waitFor(() => expect(screen.queryByTestId('session-a1')).toBeNull());
+    expect(api.deleteSession).toHaveBeenCalledWith('a1');
+    expect(screen.getByTestId('session-b2')).toBeTruthy();
+    expect(screen.queryByTestId('confirm-delete')).toBeNull();
+    expect(window.location.pathname).toBe('/history');
+  });
+
+  it('keeps the workout and explains when deleting fails', async () => {
+    api.sessions.mockResolvedValue([sessionDto({ id: 'a1', status: 'completed', endedAt: NOW })]);
+    api.deleteSession.mockRejectedValue(new Error('Only finished workouts can be deleted'));
+    renderAt('/history', <History />);
+    fireEvent.click(await screen.findByTestId('delete-a1'));
+    fireEvent.click(await screen.findByTestId('confirm-delete-yes'));
+    expect((await screen.findByRole('alert')).textContent).toBe('Only finished workouts can be deleted');
+    expect(screen.getByTestId('session-a1')).toBeTruthy();
+  });
+
+  it('shows the empty state once the last workout is deleted', async () => {
+    api.sessions.mockResolvedValue([sessionDto({ id: 'a1', status: 'completed', endedAt: NOW })]);
+    api.deleteSession.mockResolvedValue({ id: 'a1' });
+    renderAt('/history', <History />);
+    fireEvent.click(await screen.findByTestId('delete-a1'));
+    fireEvent.click(await screen.findByTestId('confirm-delete-yes'));
     await screen.findByText('No finished workouts yet.');
   });
 });

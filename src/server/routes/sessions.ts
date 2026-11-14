@@ -35,6 +35,7 @@ export function sessionRoutes(deps: Deps) {
       const row = deps.repos.sessions.findById(c.req.valid('param').id);
       return row ? ok(c, toDto(row)) : fail(c, 404, 'Session not found');
     })
+    .delete('/:id', validate('param', idParam), (c) => ok(c, svc.removeFinished(deps, c.req.valid('param').id)))
     .post('/:id/reroll', validate('param', idParam), validate('json', rerollBody), (c) =>
       ok(c, svc.reroll(deps, c.req.valid('param').id, c.req.valid('json').length)),
     )

@@ -58,6 +58,8 @@ export const api = {
   home: () => request<HomeDto>('GET', '/api/sessions/home'),
   sessions: (limit = 20) => request<SessionDto[]>('GET', `/api/sessions?limit=${limit}`),
   session: (id: string) => request<SessionDto>('GET', `/api/sessions/${id}`),
+  /** Finished workouts only. The empty JSON body satisfies the server's JSON-only write guard. */
+  deleteSession: (id: string) => request<{ id: string }>('DELETE', `/api/sessions/${id}`, {}),
   createSession: (day: Day, length?: SessionLength) => request<SessionDto>('POST', '/api/sessions', { day, length }),
   reroll: (id: string, length?: SessionLength) => request<SessionDto>('POST', `/api/sessions/${id}/reroll`, { length }),
   alternatives: (id: string, position: number) =>

@@ -204,6 +204,33 @@ describe('session lifecycle', () => {
     expect(bench.sets.at(-1)?.targetReps).toBe(6);
   });
 
+  it('deletes a finished workout along with its logged sets', async () => {
+    const session = await startedSession('push');
+    const done = completeAll(reduce(session.state!, okEvent(clock)));
+    await call('PUT', `/api/sessions/${session.id}/state`, { state: done });
+    const exerciseId = done.logs[0]!.exerciseId;
+    expect((await call<unknown[]>('GET', `/api/exercises/${exerciseId}/history`)).data.length).toBeGreaterThan(0);
+
+    const removed = await call('DELETE', `/api/sessions/${session.id}`, {});
+    expect(removed).toMatchObject({ status: 200, success: true, data: { id: session.id } });
+    expect((await call('GET', `/api/sessions/${session.id}`)).status).toBe(404);
+    expect((await call<SessionDto[]>('GET', '/api/sessions')).data).toEqual([]);
+    // Its sets no longer feed progression, and Home forgets it was the last workout.
+    expect((await call<unknown[]>('GET', `/api/exercises/${exerciseId}/history`)).data).toEqual([]);
+    const home = await call<{ nextDay: string; last: unknown }>('GET', '/api/sessions/home');
+    expect(home.data).toMatchObject({ nextDay: 'push', last: null });
+  });
+
+  it('only deletes finished workouts', async () => {
+    const planned = await call<SessionDto>('POST', '/api/sessions', { day: 'legs' });
+    expect((await call('DELETE', `/api/sessions/${planned.data.id}`, {})).status).toBe(409);
+    const active = await startedSession();
+    const res = await call('DELETE', `/api/sessions/${active.id}`, {});
+    expect(res).toMatchObject({ status: 409, error: 'Only finished workouts can be deleted' });
+    expect((await call<SessionDto>('GET', `/api/sessions/${active.id}`)).data.status).toBe('active');
+    expect((await call('DELETE', '/api/sessions/nope', {})).status).toBe(404);
+  });
+
   it('abandons a previously active session when another starts', async () => {
     const first = await startedSession('push');
     await startedSession('legs');
