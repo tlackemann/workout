@@ -11,12 +11,16 @@ export interface Exposure {
   readonly repMax: number;
   readonly plannedSets: number;
   readonly sets: readonly LoggedSet[];
+  /** Warm-up sets logged before the working sets, in order. */
+  readonly warmups: readonly LoggedSet[];
 }
 
 /** exerciseId → exposures, most recent first. */
 export type ExerciseHistory = Readonly<Record<string, readonly Exposure[]>>;
 
-export type TargetReason = 'first' | 'progress' | 'add_reps' | 'deload' | 'stale' | 'maxed' | 'promote';
+export const TARGET_REASONS = ['first', 'progress', 'add_reps', 'consolidate', 'deload', 'stale', 'maxed', 'promote'] as const;
+/** `consolidate`: last time the top load wasn't held for every set, so do all sets there. */
+export type TargetReason = (typeof TARGET_REASONS)[number];
 
 export interface Target {
   readonly load: number;

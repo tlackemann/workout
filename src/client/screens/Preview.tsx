@@ -21,6 +21,7 @@ import { ItemSheet, type Sheet } from './PreviewSheet.tsx';
 const BADGES: Partial<Record<PlanItem['reason'], string>> = {
   first: 'New',
   progress: 'Weight up',
+  consolidate: 'Top set',
   deload: 'Deload',
   stale: 'Welcome back',
   maxed: 'Stack maxed',

@@ -42,7 +42,7 @@ export interface SummaryInput {
 export const bestE1rm = (sets: readonly { readonly reps: number; readonly load: number }[]): number =>
   sets.reduce((best, s) => Math.max(best, estimate1rm(s.load, s.reps)), 0);
 
-function exposureFrom(working: readonly SetLog[], now: number): Exposure | null {
+function exposureFrom(working: readonly SetLog[], warmups: readonly SetLog[], now: number): Exposure | null {
   const first = working[0];
   if (!first) return null;
   return {
@@ -52,6 +52,7 @@ function exposureFrom(working: readonly SetLog[], now: number): Exposure | null 
     repMax: first.repMax,
     plannedSets: first.plannedSets,
     sets: working.map((s) => ({ reps: s.reps, load: s.load })),
+    warmups: warmups.map((s) => ({ reps: s.reps, load: s.load })),
   };
 }
 
@@ -61,7 +62,7 @@ function summarizeExercise(exerciseId: string, sets: readonly SetLog[], input: S
   const best = bestE1rm(working);
   const prevBest = Math.max(0, ...past.map((e) => bestE1rm(e.sets)));
   const exercise = input.library.get(exerciseId);
-  const current = exposureFrom(working, input.now);
+  const current = exposureFrom(working, sets.filter((s) => s.kind === 'warmup'), input.now);
   const next =
     exercise && current
       ? computeTarget({

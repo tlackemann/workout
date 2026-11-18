@@ -11,7 +11,7 @@ type LogRow = typeof setLogs.$inferSelect;
 export interface SetLogsRepository {
   upsertMany(sessionId: string, logs: readonly SetLog[]): void;
   forSession(sessionId: string): SetLog[];
-  /** Working-set exposures per exercise, most recent first, excluding one session. */
+  /** Exposures (working sets + their warm-ups) per exercise, most recent first, excluding one session. */
   history(excludeSessionId?: string): ExerciseHistory;
   /** Working sets of finished sessions only (no abandoned or in-progress workouts). */
   finishedWorkingSets(): WorkingSetFact[];
@@ -32,19 +32,26 @@ const toSetLog = (r: LogRow): SetLog => ({
   loggedAt: r.loggedAt,
 });
 
+const toLoggedSets = (rows: readonly LogRow[]) =>
+  [...rows].sort((a, b) => a.setIndex - b.setIndex).map((r) => ({ reps: r.reps, load: r.load }));
+
+/** One exposure per session × plan position; groups with only warm-ups logged are left out. */
 function groupExposures(rows: readonly LogRow[]): ExerciseHistory {
   const byExposure = Map.groupBy(rows, (r) => `${r.sessionId}:${r.position}`);
-  const exposures = [...byExposure.values()].map((group) => {
-    const first = group[0]!;
+  const exposures = [...byExposure.values()].flatMap((group) => {
+    const working = group.filter((r) => r.kind === 'working');
+    const first = working[0];
+    if (!first) return [];
     const exposure: Exposure = {
       sessionId: first.sessionId,
-      date: Math.max(...group.map((r) => r.loggedAt)),
+      date: Math.max(...working.map((r) => r.loggedAt)),
       repMin: first.repMin,
       repMax: first.repMax,
       plannedSets: first.plannedSets,
-      sets: [...group].sort((a, b) => a.setIndex - b.setIndex).map((r) => ({ reps: r.reps, load: r.load })),
+      sets: toLoggedSets(working),
+      warmups: toLoggedSets(group.filter((r) => r.kind === 'warmup')),
     };
-    return { exerciseId: first.exerciseId, exposure };
+    return [{ exerciseId: first.exerciseId, exposure }];
   });
   const byExercise = Map.groupBy(exposures, (e) => e.exerciseId);
   return Object.fromEntries(
@@ -93,9 +100,9 @@ export function createSetLogsRepo(db: Db): SetLogsRepository {
         .all();
     },
     history(excludeSessionId) {
-      const working = eq(setLogs.kind, 'working');
-      const where = excludeSessionId ? and(working, ne(setLogs.sessionId, excludeSessionId)) : working;
-      return groupExposures(db.select().from(setLogs).where(where).all());
+      const query = db.select().from(setLogs);
+      const rows = excludeSessionId ? query.where(ne(setLogs.sessionId, excludeSessionId)).all() : query.all();
+      return groupExposures(rows);
     },
   };
 }

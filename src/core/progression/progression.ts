@@ -27,28 +27,42 @@ export function isComplete(exposure: Exposure): boolean {
   return exposure.plannedSets > 0 && exposure.sets.length >= exposure.plannedSets;
 }
 
+/** Missed the bottom of the range at the top load (a missed heavier attempt above it doesn't count). */
 function failed(exposure: Exposure): boolean {
-  return exposure.sets.some((s) => s.reps < exposure.repMin);
+  return topSet(exposure).sets.some((s) => s.reps < exposure.repMin);
 }
 
-function workingLoad(sets: readonly LoggedSet[]): number {
-  return sets[0]?.load ?? 0;
+export interface TopSet {
+  /** Heaviest load that met the bottom of the rep range (or the heaviest at all, if none did). */
+  readonly load: number;
+  /** Every set done at that load, in order. */
+  readonly sets: readonly LoggedSet[];
 }
+
+/**
+ * The best weight actually handled in an exposure. Sets are often ramped (first sets light,
+ * then heavier), so the first set says little about what the lifter can do.
+ */
+export function topSet(exposure: Pick<Exposure, 'sets' | 'repMin'>): TopSet {
+  const qualifying = exposure.sets.filter((s) => s.reps >= exposure.repMin);
+  const pool = qualifying.length > 0 ? qualifying : exposure.sets;
+  const load = Math.max(0, ...pool.map((s) => s.load));
+  return { load, sets: exposure.sets.filter((s) => s.load === load) };
+}
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 function result(load: number, reps: number[], reason: TargetReason, lastLoad: number | null): Target {
   return { load, reps, reason, promote: reason === 'promote', lastLoad };
 }
 
 /** Per-set +1 rep, clamped into [repMin, repMax]. */
-function addReps(last: Exposure, sets: number, repMin: number, repMax: number): number[] {
-  return Array.from({ length: sets }, (_, i) => {
-    const prev = last.sets[i]?.reps ?? repMin;
-    return Math.min(repMax, Math.max(repMin, prev + 1));
-  });
+function addReps(done: readonly LoggedSet[], sets: number, repMin: number, repMax: number): number[] {
+  return Array.from({ length: sets }, (_, i) => clamp((done[i]?.reps ?? repMin) + 1, repMin, repMax));
 }
 
-function toppedOut(last: Exposure, sets: number, repMax: number): boolean {
-  return last.sets.length >= sets && last.sets.slice(0, sets).every((s) => s.reps >= repMax);
+function toppedOut(done: readonly LoggedSet[], sets: number, repMax: number): boolean {
+  return done.length >= sets && done.slice(0, sets).every((s) => s.reps >= repMax);
 }
 
 /** Double progression: chase reps to the top of the range, then add weight. */
@@ -63,7 +77,8 @@ export function computeTarget(input: TargetInput): Target {
     return result(snapDown(start, options), fill(sets, repMin), 'first', null);
   }
 
-  const lastLoad = workingLoad(last.sets);
+  const top = topSet(last);
+  const lastLoad = top.load;
   if (now - last.date > STALE_AFTER_MS) {
     return result(snapDown(lastLoad * DELOAD_FACTOR, options), fill(sets, repMin), 'stale', lastLoad);
   }
@@ -74,32 +89,38 @@ export function computeTarget(input: TargetInput): Target {
   }
 
   if (exercise.load.type === 'bodyweight') {
-    return toppedOut(last, sets, repMax)
+    return toppedOut(last.sets, sets, repMax)
       ? result(0, fill(sets, repMax), 'promote', lastLoad)
-      : result(0, addReps(last, sets, repMin, repMax), 'add_reps', lastLoad);
+      : result(0, addReps(last.sets, sets, repMin, repMax), 'add_reps', lastLoad);
   }
 
-  return progressLoaded(last, lastLoad, options, { exercise, repMin, repMax, sets, settings });
+  return progressLoaded(top, options, { exercise, repMin, repMax, sets, settings });
 }
 
+/** Double progression on the top load; a top load not yet held for every set is consolidated first. */
 function progressLoaded(
-  last: Exposure,
-  lastLoad: number,
+  top: TopSet,
   options: readonly number[],
   ctx: Pick<TargetInput, 'exercise' | 'repMin' | 'repMax' | 'sets' | 'settings'>,
 ): Target {
   const { exercise, repMin, repMax, sets, settings } = ctx;
+  const lastLoad = top.load;
   const heaviest = options.at(-1) ?? lastLoad;
   const atMax = lastLoad >= heaviest;
+  const effectiveMax = atMax ? repMax + MAXED_REP_EXTENSION : repMax;
 
-  if (!atMax && toppedOut(last, sets, repMax)) {
+  if (top.sets.length < sets) {
+    const held = Math.min(...top.sets.map((s) => s.reps));
+    return result(lastLoad, fill(sets, clamp(held, repMin, effectiveMax)), 'consolidate', lastLoad);
+  }
+
+  if (!atMax && toppedOut(top.sets, sets, repMax)) {
     const next = snapUp(lastLoad + loadIncrement(exercise, settings), options);
     return result(next, fill(sets, repMin), 'progress', lastLoad);
   }
 
-  const effectiveMax = atMax ? repMax + MAXED_REP_EXTENSION : repMax;
-  if (atMax && toppedOut(last, sets, effectiveMax)) {
+  if (atMax && toppedOut(top.sets, sets, effectiveMax)) {
     return result(lastLoad, fill(sets, effectiveMax), 'maxed', lastLoad);
   }
-  return result(lastLoad, addReps(last, sets, repMin, effectiveMax), 'add_reps', lastLoad);
+  return result(lastLoad, addReps(top.sets, sets, repMin, effectiveMax), 'add_reps', lastLoad);
 }

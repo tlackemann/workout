@@ -204,6 +204,39 @@ describe('session lifecycle', () => {
     expect(bench.sets.at(-1)?.targetReps).toBe(6);
   });
 
+  it('bases the next plan on the top set and the logged warm-up opener', async () => {
+    const session = await startedSession('push');
+    const bench = session.state!.plan.items.find((i) => i.exerciseId === 'bench-press')!;
+    const firstWorking = bench.sets.findIndex((s) => s.kind === 'working');
+    // Warm up from 65 instead of the bar; ramp the last two working sets up to 115.
+    const loadFor = (set: number) => (set === 0 ? 65 : set >= firstWorking + 2 ? 115 : null);
+    let s = reduce(session.state!, okEvent(clock));
+    let t = clock;
+    while (s.phase !== 'done') {
+      t += 1000;
+      const load = s.phase === 'work' && s.cursor.item === bench.position ? loadFor(s.cursor.set) : null;
+      if (load !== null) s = reduce(s, { type: 'SET_LOAD', load, now: t });
+      s = reduce(s, okEvent(t));
+    }
+    await call('PUT', `/api/sessions/${session.id}/state`, { state: s });
+
+    const history = await call<{ sets: { load: number }[]; warmups: { load: number }[] }[]>('GET', '/api/exercises/bench-press/history');
+    expect(history.data[0]?.warmups[0]?.load).toBe(65);
+    expect(history.data[0]?.sets.map((x) => x.load).slice(-2)).toEqual([115, 115]);
+
+    clock += 3 * 86_400_000;
+    const next = await call<SessionDto>('POST', '/api/sessions', { day: 'push', length: 'quick' });
+    const nextBench = next.data.plan.items.find((i) => i.exerciseId === 'bench-press')!;
+    expect(nextBench).toMatchObject({ reason: 'consolidate', lastLoad: 115 });
+    expect(nextBench.sets.filter((x) => x.kind === 'working').map((x) => x.targetLoad)).toEqual([115, 115, 115, 115]);
+    expect(nextBench.sets[0]).toMatchObject({ kind: 'warmup', targetLoad: 65 });
+
+    // A plan carrying the new reason must still pass state validation when saved.
+    const started = await call<SessionDto>('POST', `/api/sessions/${next.data.id}/start`, {});
+    const moved = reduce(started.data.state!, okEvent(clock + 1));
+    expect((await call('PUT', `/api/sessions/${next.data.id}/state`, { state: moved })).status).toBe(200);
+  });
+
   it('deletes a finished workout along with its logged sets', async () => {
     const session = await startedSession('push');
     const done = completeAll(reduce(session.state!, okEvent(clock)));

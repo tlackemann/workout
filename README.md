@@ -112,8 +112,14 @@ pauses.
 - **Progress** (`GET /api/stats`, pure functions in `src/core/stats/`): estimated 1RM and top set per lift with PRs,
   a 26-week heatmap and weekly streak (in the TV's time zone), workout length and volume per day, and working sets
   per muscle over the last four weeks. Charts are static SVG, no chart library.
-- **Progression**: hit the top of the rep range on every set → add weight (5 lb upper, 10 lb lower, one plate on
-  stacks, next loadable total for bars). Two failed sessions in a row → −10%. More than six weeks away → −10%.
+- **Progression** works from the **top set**: the heaviest weight that reached the bottom of the rep range, not
+  the first set. If that weight wasn't done for every planned set (you raised it partway through), the next session
+  does all sets there at the reps you hit (badge "Top set"). Otherwise: hit the top of the rep range on every set →
+  add weight (5 lb upper, 10 lb lower, one plate on stacks, next loadable total for bars), else +1 rep per set.
+  Two failed sessions in a row → −10% of the top set. More than six weeks away → −10%.
+- **Warm-ups** (barbell anchors) open at the weight you last warmed up with, scaled to today's working weight
+  (e.g. 65 before a 115 top set), so the opener rises as you get stronger. With no logged warm-ups it is the empty
+  bar. Then ~50 / 70 / 85% of the working weight, keeping only steps heavier than the set before.
   Bodyweight moves level up through variants (incline → floor → handles → decline push-ups).
 
 ## Development

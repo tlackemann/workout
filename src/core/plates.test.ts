@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { loadableTotals, nextLoadable, platesPerSide, roundDownLoadable, type PlatePair } from './plates.ts';
+import { loadableTotals, nearestLoadable, nextLoadable, platesPerSide, roundDownLoadable, type PlatePair } from './plates.ts';
 
 const HOME: PlatePair[] = [
   { weight: 45, pairs: 4 },
@@ -70,5 +70,24 @@ describe('nextLoadable / roundDownLoadable', () => {
   it('rounds down to a loadable total but never below the bar', () => {
     expect(roundDownLoadable(143, totals)).toBe(140);
     expect(roundDownLoadable(10, totals)).toBe(45);
+  });
+});
+
+describe('nearestLoadable', () => {
+  const totals = [45, 50, 55, 65, 95];
+
+  it('picks the closest loadable total', () => {
+    expect(nearestLoadable(63, totals)).toBe(65);
+    expect(nearestLoadable(51, totals)).toBe(50);
+    expect(nearestLoadable(94.5, totals)).toBe(95);
+  });
+
+  it('takes the lighter total on a tie', () => {
+    expect(nearestLoadable(60, totals)).toBe(55);
+  });
+
+  it('clamps outside the loadable range', () => {
+    expect(nearestLoadable(10, totals)).toBe(45);
+    expect(nearestLoadable(500, totals)).toBe(95);
   });
 });

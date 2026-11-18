@@ -1,5 +1,5 @@
 import type { ExerciseDef } from './library/schema.ts';
-import { loadableTotals, nextLoadable, roundDownLoadable, stepLoadable } from './plates.ts';
+import { loadableTotals, nearestLoadable, nextLoadable, roundDownLoadable, stepLoadable } from './plates.ts';
 import type { Settings } from './settings.ts';
 
 const DUMBBELL_MAX = 150;
@@ -52,4 +52,5 @@ export function isLoaded(exercise: ExerciseDef): boolean {
 
 export const snapUp = nextLoadable;
 export const snapDown = roundDownLoadable;
+export const snapNearest = nearestLoadable;
 export const step = stepLoadable;

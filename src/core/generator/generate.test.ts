@@ -53,6 +53,27 @@ describe('generate', () => {
     expect(plan.items[0]).toMatchObject({ exerciseId: 'machine-chest-press', substituted: true });
   });
 
+  it('plans a ramped anchor at its top set and warms up from the logged opener', () => {
+    const history = {
+      'bench-press': [
+        {
+          sessionId: 'last',
+          date: NOW - 2 * 86_400_000,
+          repMin: 5,
+          repMax: 8,
+          plannedSets: 4,
+          sets: [95, 95, 115, 115].map((load) => ({ load, reps: 7 })),
+          warmups: [{ load: 65, reps: 10 }, { load: 65, reps: 3 }, { load: 95, reps: 1 }],
+        },
+      ],
+    };
+    const bench = generate(input({ history })).items.find((i) => i.exerciseId === 'bench-press')!;
+    expect(bench).toMatchObject({ reason: 'consolidate', lastLoad: 115 });
+    const sets = (kind: string) => bench.sets.filter((s) => s.kind === kind).map((s) => `${s.targetLoad}x${s.targetReps}`);
+    expect(sets('working')).toEqual(['115x7', '115x7', '115x7', '115x7']);
+    expect(sets('warmup')).toEqual(['65x10', '80x3', '95x1']);
+  });
+
   it('adds warm-up sets to barbell anchors only', () => {
     const plan = generate(input({ history: { 'bench-press': [] } }));
     const bench = plan.items[0]!;
@@ -118,7 +139,7 @@ describe('generate', () => {
     const settings = { ...DEFAULT_SETTINGS, equipment: DEFAULT_SETTINGS.equipment.filter((t) => t !== 'mx.pec_fly') };
     const history = {
       'pushup-handles': [
-        { sessionId: 'a', date: NOW - 3 * 86_400_000, repMin: 10, repMax: 15, plannedSets: 3, sets: [15, 15, 15].map((reps) => ({ reps, load: 0 })) },
+        { sessionId: 'a', date: NOW - 3 * 86_400_000, repMin: 10, repMax: 15, plannedSets: 3, sets: [15, 15, 15].map((reps) => ({ reps, load: 0 })), warmups: [] },
       ],
     };
     const plan = generate(input({ length: 'long', settings, history }));
@@ -251,7 +272,7 @@ describe('bodyweight promotion over time', () => {
   it('keeps you on the variant you have been training even after the old one goes stale', () => {
     const settings = { ...DEFAULT_SETTINGS, equipment: DEFAULT_SETTINGS.equipment.filter((t) => t !== 'mx.pec_fly' && t !== 'pushup_handles') };
     const day = 86_400_000;
-    const exposure = (daysAgo: number, reps: number[]) => ({ sessionId: `s${daysAgo}`, date: NOW - daysAgo * day, repMin: 10, repMax: 15, plannedSets: reps.length, sets: reps.map((r) => ({ reps: r, load: 0 })) });
+    const exposure = (daysAgo: number, reps: number[]) => ({ sessionId: `s${daysAgo}`, date: NOW - daysAgo * day, repMin: 10, repMax: 15, plannedSets: reps.length, sets: reps.map((r) => ({ reps: r, load: 0 })), warmups: [] });
     const history = {
       // pec-fly and handles are off, so chest-iso starts from the next candidate in the chain family.
       'incline-pushup': [exposure(60, [15, 15, 15])],

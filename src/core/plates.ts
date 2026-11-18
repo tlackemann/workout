@@ -71,6 +71,13 @@ export function roundDownLoadable(target: number, totals: readonly number[]): nu
   return below.at(-1) ?? totals[0] ?? target;
 }
 
+/** Closest loadable total (the lighter one on a tie), clamped to the loadable range. */
+export function nearestLoadable(target: number, totals: readonly number[]): number {
+  const below = roundDownLoadable(target, totals);
+  const above = nextLoadable(target, totals);
+  return Math.abs(above - target) < Math.abs(target - below) - 1e-9 ? above : below;
+}
+
 /** Step up/down through loadable totals from the current value. */
 export function stepLoadable(current: number, direction: 1 | -1, totals: readonly number[]): number {
   if (direction === 1) return totals.find((t) => t > current + 1e-9) ?? totals.at(-1) ?? current;

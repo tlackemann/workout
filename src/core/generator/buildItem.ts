@@ -3,7 +3,7 @@ import { loadOptions } from '../loads.ts';
 import type { PlanItem, PlanSet } from '../plan.ts';
 import { computeTarget } from '../progression/progression.ts';
 import type { Target } from '../progression/types.ts';
-import { warmupSets } from '../progression/warmups.ts';
+import { learnedOpener, warmupSets } from '../progression/warmups.ts';
 import { usable, type GenContext } from './context.ts';
 import type { Slot } from './types.ts';
 
@@ -53,7 +53,10 @@ function promote(ctx: GenContext, slot: Slot, picked: ExerciseDef): { exercise: 
 
 function warmups(ctx: GenContext, slot: Slot, exercise: ExerciseDef, load: number): PlanSet[] {
   if (slot.role !== 'anchor' || exercise.load.type !== 'barbell') return [];
-  const sets = warmupSets(load, loadOptions(exercise, ctx.settings), ctx.settings.barWeight);
+  const options = loadOptions(exercise, ctx.settings);
+  const bar = ctx.settings.barWeight;
+  const opener = learnedOpener(ctx.history[exercise.id] ?? [], load, options, bar);
+  const sets = warmupSets(load, options, bar, opener);
   return sets.map((s, i) => ({
     kind: 'warmup',
     targetReps: s.reps,

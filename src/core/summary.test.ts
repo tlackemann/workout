@@ -35,7 +35,7 @@ describe('summarize', () => {
 
   it('flags a PR against history and computes the next target', () => {
     const history = {
-      'bench-press': [{ sessionId: 'old', date: NOW - 7 * 86_400_000, repMin: 5, repMax: 8, plannedSets: 2, sets: [{ reps: 8, load: 125 }, { reps: 8, load: 125 }] }],
+      'bench-press': [{ sessionId: 'old', date: NOW - 7 * 86_400_000, repMin: 5, repMax: 8, plannedSets: 2, sets: [{ reps: 8, load: 125 }, { reps: 8, load: 125 }], warmups: [] }],
     };
     const s = summarize({ logs, skipped: [], startedAt: NOW - 1000, endedAt: NOW, history, library, settings: DEFAULT_SETTINGS, now: NOW });
     const bench = s.exercises[0]!;

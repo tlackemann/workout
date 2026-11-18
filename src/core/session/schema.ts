@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DAYS, SESSION_LENGTHS } from '../days.ts';
+import { TARGET_REASONS } from '../progression/types.ts';
 import { SESSION_SCHEMA_VERSION } from './types.ts';
 
 const int = z.number().int();
@@ -25,7 +26,7 @@ export const planItemSchema = z.object({
   sets: z.array(planSetSchema).min(1).max(20),
   workingSets: int.min(0).max(20),
   substituted: z.boolean(),
-  reason: z.enum(['first', 'progress', 'add_reps', 'deload', 'stale', 'maxed', 'promote']),
+  reason: z.enum(TARGET_REASONS),
   lastLoad: nonNeg.nullable(),
 });
 
