@@ -26,6 +26,8 @@ export interface StatsInput {
   readonly sessions: readonly SessionFact[];
   readonly sets: readonly WorkingSetFact[];
   readonly library: Library;
+  /** When each finished stretch session ended. Shown on the heatmap; never counted as a workout. */
+  readonly stretches?: readonly number[];
   readonly now: number;
   /** IANA time zone the calendar (days, weeks, streaks) is computed in. */
   readonly tz: string;
@@ -78,6 +80,8 @@ export interface WeekBucket {
 export interface HeatCell {
   readonly date: DayKey;
   readonly workouts: number;
+  /** Stretch sessions that day (recovery, not workouts). */
+  readonly stretches: number;
   readonly isToday: boolean;
   readonly future: boolean;
 }
@@ -144,6 +148,8 @@ export interface StatsDto {
   readonly tz: string;
   readonly today: DayKey;
   readonly workouts: number;
+  /** Finished stretch sessions, all time. */
+  readonly stretches: number;
   readonly lifts: readonly LiftSeries[];
   readonly consistency: Consistency;
   readonly sessions: SessionTrends;

@@ -41,4 +41,17 @@ describe('buildStats', () => {
     expect(stats.consistency.streak).toEqual({ current: 1, best: 1, thisWeek: 0 });
     expect(stats.lifts[0]?.points).toHaveLength(1);
   });
+
+  it('counts finished stretches separately and dates them in the given zone', () => {
+    const sunEvening = Date.UTC(2026, 10, 9, 2); // Sun Nov 8, 21:00 in New York
+    const stats = buildStats({ sessions: [], sets: [], stretches: [sunEvening, NOW - HOUR], library, now: NOW, tz: 'America/New_York' });
+    expect(stats).toMatchObject({ workouts: 0, stretches: 2 });
+    expect(stats.consistency.heatmap.at(-2)?.[6]).toMatchObject({ date: '2026-11-08', stretches: 1, workouts: 0 });
+    expect(stats.consistency.heatmap.at(-1)?.[5]).toMatchObject({ date: '2026-11-14', stretches: 1 });
+    expect(stats.consistency.streak.current).toBe(0);
+  });
+
+  it('treats missing stretch data as none', () => {
+    expect(buildStats({ sessions: [], sets: [], library, now: NOW, tz: 'UTC' }).stretches).toBe(0);
+  });
 });

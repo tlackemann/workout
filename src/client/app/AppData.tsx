@@ -2,12 +2,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { indexLibrary, type Library } from '../../core/library/index.ts';
 import { librarySchema } from '../../core/library/schema.ts';
 import type { ExercisePref, Prefs, Settings } from '../../core/settings.ts';
+import { indexStretches, stretchLibrarySchema, type StretchLibrary } from '../../core/stretch/schema.ts';
 import { LIBRARY } from '../../data/library.ts';
+import { STRETCHES } from '../../data/stretches.ts';
 import { configureAudio } from '../audio/cues.ts';
 import { api } from './api.ts';
 
 interface AppDataValue {
   readonly library: Library;
+  readonly stretches: StretchLibrary;
   readonly settings: Settings;
   readonly prefs: Prefs;
   readonly updateSettings: (next: Settings) => void;
@@ -17,6 +20,7 @@ interface AppDataValue {
 
 const AppDataContext = createContext<AppDataValue | null>(null);
 const library = indexLibrary(librarySchema.parse(LIBRARY));
+const stretches = indexStretches(stretchLibrarySchema.parse(STRETCHES));
 const SAVE_DEBOUNCE_MS = 400;
 
 export function AppDataProvider(props: {
@@ -48,7 +52,7 @@ export function AppDataProvider(props: {
   }, []);
 
   const value = useMemo(
-    () => ({ library, settings, prefs, updateSettings, updatePref, saveError }),
+    () => ({ library, stretches, settings, prefs, updateSettings, updatePref, saveError }),
     [settings, prefs, updateSettings, updatePref, saveError],
   );
   return <AppDataContext.Provider value={value}>{props.children}</AppDataContext.Provider>;

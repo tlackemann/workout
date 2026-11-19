@@ -8,7 +8,12 @@ import { buildStats } from '../../core/stats/index.ts';
 import type { SessionFact, StatsDto, WorkingSetFact } from '../../core/stats/types.ts';
 import { LIBRARY } from '../../data/library.ts';
 import { TEMPLATES } from '../../data/templates.ts';
-import type { SessionDto } from '../app/api.ts';
+import { generateStretch } from '../../core/stretch/generate.ts';
+import { indexStretches } from '../../core/stretch/schema.ts';
+import type { StretchPlan } from '../../core/stretch/types.ts';
+import { STRETCH_TEMPLATE } from '../../data/stretchTemplate.ts';
+import { STRETCHES } from '../../data/stretches.ts';
+import type { SessionDto, StretchSessionDto } from '../app/api.ts';
 
 export const NOW = Date.UTC(2026, 10, 7, 12);
 export const library = indexLibrary(LIBRARY);
@@ -61,4 +66,27 @@ export function statsDto(): StatsDto {
     [5, 5, 4].map((reps) => ({ sessionId: id, exerciseId, reps, load, loggedAt: 0 })),
   );
   return buildStats({ sessions, sets, library, now: NOW, tz: 'UTC' });
+}
+
+export const NO_STRETCH = { lastEndedAt: null, estimatedSec: 14 * 60, activeId: null } as const;
+
+export const stretchLibrary = indexStretches(STRETCHES);
+
+export function stretchPlan(length: StretchPlan['length'] = 'quick'): StretchPlan {
+  return generateStretch({ length, seed: 7, settings: DEFAULT_SETTINGS, recent: [], library: stretchLibrary, template: STRETCH_TEMPLATE });
+}
+
+export function stretchDto(overrides: Partial<StretchSessionDto> = {}): StretchSessionDto {
+  return {
+    id: 'st1',
+    status: 'planned',
+    length: 'quick',
+    plan: overrides.plan ?? stretchPlan(overrides.length ?? 'quick'),
+    completed: [],
+    skipped: [],
+    createdAt: NOW,
+    startedAt: null,
+    endedAt: null,
+    ...overrides,
+  };
 }

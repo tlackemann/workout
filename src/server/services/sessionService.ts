@@ -10,6 +10,7 @@ import { HttpError } from '../http.ts';
 import { FINISHED } from '../repositories/sessionsRepo.ts';
 import type { Deps } from './deps.ts';
 import { exerciseIdsOf, toDto, type SessionDto } from './sessionDto.ts';
+import { homeInfo as stretchHomeInfo, type StretchHomeInfo } from './stretchService.ts';
 
 function generationInput(deps: Deps, day: Day, length: SessionLength, seed: number, excludeSessionId?: string): GenerateInput {
   return {
@@ -149,6 +150,8 @@ export interface HomeDto {
   readonly nextDay: Day;
   readonly last: { readonly day: Day; readonly endedAt: number | null } | null;
   readonly active: SessionDto | null;
+  /** Stretch day: never part of the rotation, just shown on its own Home band. */
+  readonly stretch: StretchHomeInfo;
 }
 
 export function home(deps: Deps): HomeDto {
@@ -158,5 +161,6 @@ export function home(deps: Deps): HomeDto {
     nextDay: nextDay(last?.day ?? null),
     last: last ? { day: last.day, endedAt: last.endedAt } : null,
     active: active ? toDto(active) : null,
+    stretch: stretchHomeInfo(deps),
   };
 }

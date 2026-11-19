@@ -1,7 +1,8 @@
 import type { Plan } from '../plan.ts';
 import { applyMenu, applySwap } from './menu.ts';
 import { expire, pause, resume, startRest, startWork } from './transitions.ts';
-import { CATCH_UP_THRESHOLD_MS, SESSION_SCHEMA_VERSION, type SessionEvent, type SessionState } from './types.ts';
+import { isLateTick } from '../timing.ts';
+import { SESSION_SCHEMA_VERSION, type SessionEvent, type SessionState } from './types.ts';
 
 const MAX_REPS = 100;
 
@@ -32,7 +33,7 @@ export function createSession(sessionId: string, plan: Plan, now: number, getRea
 
 function onTick(state: SessionState, now: number): SessionState {
   if (state.paused || state.phase === 'done' || state.endsAt === null || now < state.endsAt) return state;
-  if (now - state.endsAt > CATCH_UP_THRESHOLD_MS) {
+  if (isLateTick(state.endsAt, now)) {
     // The final log window ran out while away: finish at its deadline, not at wake-up time.
     const atDeadline = expire(state, state.endsAt);
     if (atDeadline.phase === 'done') return atDeadline;

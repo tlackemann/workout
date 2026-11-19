@@ -26,14 +26,17 @@ export function buildStats(input: StatsInput): StatsDto {
     })
     .filter((s) => s.sets.length > 0)
     .sort((a, b) => a.date - b.date);
+  const stretches = input.stretches ?? [];
+  const stretchDays = new Map([...Map.groupBy(stretches, toKey)].map(([key, list]) => [key, list.length]));
 
   return {
     generatedAt: input.now,
     tz: input.tz,
     today,
     workouts: sessions.length,
+    stretches: stretches.length,
     lifts: liftSeries(sessions, input.library),
-    consistency: consistency(sessions, today),
+    consistency: consistency(sessions, today, undefined, stretchDays),
     sessions: sessionTrends(sessions),
     muscles: muscleBalance(sessions, input.library, today),
   };

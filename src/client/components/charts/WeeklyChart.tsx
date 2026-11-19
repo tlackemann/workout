@@ -33,8 +33,12 @@ function stackSegments(week: WeekBucket) {
 function cellClass(cell: HeatCell): string {
   if (cell.workouts >= 2) return 'fill-text';
   if (cell.workouts === 1) return 'fill-dim';
+  if (cell.stretches > 0) return 'fill-stretch';
   return 'fill-surface-2';
 }
+
+/** A stretch on a training day: a dot in the cell's corner (the ring is reserved for today). */
+const STRETCH_DOT = 0.2;
 
 function WeeklyChartImpl(props: { readonly weeks: readonly WeekBucket[]; readonly heatmap: readonly (readonly HeatCell[])[]; readonly width: number }) {
   const columns = props.heatmap.length;
@@ -71,18 +75,29 @@ function WeeklyChartImpl(props: { readonly weeks: readonly WeekBucket[]; readonl
           .map((c, row) => ({ c, row }))
           .filter(({ c }) => !c.future)
           .map(({ c, row }) => (
-            <rect
-              key={c.date}
-              x={LEFT + i * step}
-              y={heatTop + row * step}
-              width={cell}
-              height={cell}
-              rx="5"
-              strokeWidth={c.isToday ? 4 : 0}
-              className={`${cellClass(c)} ${c.isToday ? 'stroke-focus' : ''}`}
-              data-date={c.date}
-              data-workouts={c.workouts}
-            />
+            <g key={c.date}>
+              <rect
+                x={LEFT + i * step}
+                y={heatTop + row * step}
+                width={cell}
+                height={cell}
+                rx="5"
+                strokeWidth={c.isToday ? 4 : 0}
+                className={`${cellClass(c)} ${c.isToday ? 'stroke-focus' : ''}`}
+                data-date={c.date}
+                data-workouts={c.workouts}
+                data-stretches={c.stretches}
+              />
+              {c.workouts > 0 && c.stretches > 0 && (
+                <circle
+                  cx={LEFT + i * step + cell * (1 - STRETCH_DOT)}
+                  cy={heatTop + row * step + cell * STRETCH_DOT}
+                  r={cell * STRETCH_DOT * 0.8}
+                  className="fill-stretch"
+                  data-stretch-dot={c.date}
+                />
+              )}
+            </g>
           )),
       )}
       <YGrid ticks={domain.ticks} y={y} left={LEFT} right={props.width - RIGHT} format={(v) => `${v}`} />

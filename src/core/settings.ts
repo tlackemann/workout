@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DEFAULT_EQUIPMENT, EQUIPMENT_TAGS, isEquipmentTag, type EquipmentTag } from './equipment.ts';
+import { DEFAULT_EQUIPMENT, EQUIPMENT_TAGS, isEquipmentTag, RECOVERY_TAGS, type EquipmentTag } from './equipment.ts';
 import { SESSION_LENGTHS } from './days.ts';
 
 const stationSchema = z
@@ -7,6 +7,20 @@ const stationSchema = z
   .refine((s) => s.max > s.min, 'Station max must exceed min');
 
 const anchorMap = z.record(z.string(), z.string());
+
+export const STRETCH_HOLD = { min: 30, max: 60, step: 15 } as const;
+export const STRETCH_SETUP = { min: 5, max: 20, step: 5 } as const;
+const DEFAULT_STRETCH = { holdSec: 30, setupSec: 10 } as const;
+
+const stepped = (range: { readonly min: number; readonly max: number; readonly step: number }) =>
+  z
+    .number()
+    .int()
+    .min(range.min)
+    .max(range.max)
+    .refine((n) => (n - range.min) % range.step === 0, `Must be in steps of ${range.step}`);
+
+const stretchSchema = z.object({ holdSec: stepped(STRETCH_HOLD), setupSec: stepped(STRETCH_SETUP) });
 
 export const settingsSchema = z.object({
   units: z.literal('lb'),
@@ -24,6 +38,8 @@ export const settingsSchema = z.object({
   getReadySec: z.number().int().min(0).max(60),
   defaultLength: z.enum(SESSION_LENGTHS),
   audio: z.object({ enabled: z.boolean(), volume: z.number().min(0).max(1), keepAlive: z.boolean() }),
+  /** Stretch day: static hold length and the "get into position" gap before each stretch. */
+  stretch: stretchSchema.default({ ...DEFAULT_STRETCH }),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
@@ -63,6 +79,7 @@ export const DEFAULT_SETTINGS: Settings = {
   getReadySec: 10,
   defaultLength: 'standard',
   audio: { enabled: true, volume: 0.8, keepAlive: false },
+  stretch: { ...DEFAULT_STRETCH },
 };
 
 /** Equipment that was removed from the catalogue (e.g. a station Tom turned out not to own). */
@@ -89,9 +106,26 @@ export function resolveSettings(stored: unknown): Settings {
     stations: withoutRetiredStations({ ...DEFAULT_SETTINGS.stations, ...partial.stations }),
     increments: { ...DEFAULT_SETTINGS.increments, ...partial.increments },
     audio: { ...DEFAULT_SETTINGS.audio, ...partial.audio },
+    stretch: { ...DEFAULT_SETTINGS.stretch, ...partial.stretch },
   };
   const parsed = settingsSchema.safeParse(merged);
   return parsed.success ? parsed.data : DEFAULT_SETTINGS;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * One-time upgrade of stored settings. Settings saved before stretching existed have no
+ * `stretch` block: switch the recovery gear on (Tom owns it all) and add the block, so this
+ * never runs again and gear he later turns off stays off.
+ */
+export function migrateSettings(stored: unknown): { readonly value: unknown; readonly changed: boolean } {
+  if (!isRecord(stored) || 'stretch' in stored) return { value: stored, changed: false };
+  const equipment = Array.isArray(stored.equipment) ? stored.equipment : [...DEFAULT_EQUIPMENT];
+  return {
+    value: { ...stored, equipment: [...new Set([...equipment, ...RECOVERY_TAGS])], stretch: { ...DEFAULT_STRETCH } },
+    changed: true,
+  };
 }
 
 export interface ExercisePref {

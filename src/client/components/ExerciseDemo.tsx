@@ -1,17 +1,29 @@
 import { useEffect, useState } from 'react';
-import type { ExerciseDef } from '../../core/library/schema.ts';
 import { mediaUrl } from '../app/api.ts';
 import { cx } from '../lib/cx.ts';
 
 /** Quick fade between poses: long blends just show two ghosted photos. */
 const FADE_MS = 300;
 
+/** What the demo needs: exercises and stretches both fit. */
+export interface DemoSubject {
+  readonly id: string;
+  readonly name: string;
+  /** Seconds on the start pose (`down`) and on the end pose (`up`). */
+  readonly tempo: { readonly down: number; readonly up: number };
+}
+
 /**
  * Two photos (start pose / end pose) alternating at the exercise's rep tempo: the start
  * pose holds for `tempo.down` seconds (lowering) and the end pose for `tempo.up` (lifting),
- * so the demo doubles as a pace cue.
+ * so the demo doubles as a pace cue. `mirrored` flips it (a stretch's second side).
  */
-export function ExerciseDemo(props: { readonly exercise: ExerciseDef; readonly className?: string; readonly animate?: boolean }) {
+export function ExerciseDemo(props: {
+  readonly exercise: DemoSubject;
+  readonly className?: string;
+  readonly animate?: boolean;
+  readonly mirrored?: boolean;
+}) {
   const { exercise, animate = true } = props;
   const [showEnd, setShowEnd] = useState(false);
 
@@ -31,7 +43,10 @@ export function ExerciseDemo(props: { readonly exercise: ExerciseDef; readonly c
   }, [exercise.id, exercise.tempo.down, exercise.tempo.up, animate]);
 
   return (
-    <div className={cx('relative aspect-[3/2] overflow-hidden rounded-[1.25rem] bg-surface', props.className)}>
+    <div
+      className={cx('relative aspect-[3/2] overflow-hidden rounded-[1.25rem] bg-surface', props.mirrored && '-scale-x-100', props.className)}
+      data-mirrored={props.mirrored ? 'true' : undefined}
+    >
       <img src={mediaUrl(exercise.id, 0)} alt={`${exercise.name}: start position`} className="absolute inset-0 h-full w-full object-cover" />
       <img
         src={mediaUrl(exercise.id, 1)}

@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '../../core/settings.ts';
-import { activeDto, NOW, sessionDto, statsDto } from '../test/fixtures.ts';
+import { activeDto, NO_STRETCH, NOW, sessionDto, statsDto } from '../test/fixtures.ts';
 import { KEYS, renderAt } from '../test/render.tsx';
 
 const api = vi.hoisted(() => ({
@@ -18,6 +18,7 @@ const api = vi.hoisted(() => ({
   savePref: vi.fn(),
   stats: vi.fn(),
   deleteSession: vi.fn(),
+  stretchList: vi.fn(),
 }));
 
 vi.mock('../app/api.ts', async (importOriginal) => {
@@ -35,11 +36,12 @@ const { Progress } = await import('./progress/Progress.tsx');
 
 beforeEach(() => {
   for (const fn of Object.values(api)) fn.mockReset();
+  api.stretchList.mockResolvedValue([]);
 });
 
 describe('Home', () => {
   it('shows the three days and plans the chosen one', async () => {
-    api.home.mockResolvedValue({ nextDay: 'pull', last: { day: 'push', endedAt: NOW }, active: null });
+    api.home.mockResolvedValue({ nextDay: 'pull', last: { day: 'push', endedAt: NOW }, active: null, stretch: NO_STRETCH });
     api.sessions.mockResolvedValue([sessionDto({ status: 'completed', endedAt: NOW })]);
     api.createSession.mockResolvedValue(sessionDto({ id: 'new1', day: 'pull' }));
     renderAt('/', <Home />);
@@ -52,7 +54,7 @@ describe('Home', () => {
   });
 
   it('offers to resume an active workout', async () => {
-    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: activeDto() });
+    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: activeDto(), stretch: NO_STRETCH });
     api.sessions.mockResolvedValue([]);
     renderAt('/', <Home />);
     fireEvent.click(await screen.findByTestId('resume'));
@@ -60,7 +62,7 @@ describe('Home', () => {
   });
 
   it('reports planning failures', async () => {
-    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null });
+    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null, stretch: NO_STRETCH });
     api.sessions.mockResolvedValue([]);
     api.createSession.mockRejectedValue(new Error('Server is grumpy'));
     renderAt('/', <Home />);
@@ -69,7 +71,7 @@ describe('Home', () => {
   });
 
   it('navigates to history and settings', async () => {
-    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null });
+    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null, stretch: NO_STRETCH });
     api.sessions.mockResolvedValue([]);
     renderAt('/', <Home />);
     fireEvent.click(await screen.findByTestId('go-settings'));
@@ -224,7 +226,7 @@ describe('History', () => {
 
 describe('Progress', () => {
   it('opens from Home', async () => {
-    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null });
+    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null, stretch: NO_STRETCH });
     api.sessions.mockResolvedValue([]);
     renderAt('/', <Home />);
     fireEvent.click(await screen.findByTestId('go-progress'));

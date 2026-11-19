@@ -1,16 +1,18 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { exercisePrefSchema, settingsSchema } from '../../core/settings.ts';
+import { exercisePrefSchema, migrateSettings, settingsSchema } from '../../core/settings.ts';
 import { fail, ok } from '../http.ts';
 import type { Deps } from '../services/deps.ts';
 import { validate } from './validate.ts';
 
 const prefParam = z.object({ id: z.string().min(1).max(64) });
+/** A TV still running a bundle from before stretching saves without a stretch block: upgrade it like boot does. */
+const settingsBody = z.preprocess((body) => migrateSettings(body).value, settingsSchema);
 
 export function settingsRoutes(deps: Deps) {
   return new Hono()
     .get('/settings', (c) => ok(c, deps.repos.settings.get()))
-    .put('/settings', validate('json', settingsSchema), (c) => ok(c, deps.repos.settings.save(c.req.valid('json'), deps.now())))
+    .put('/settings', validate('json', settingsBody), (c) => ok(c, deps.repos.settings.save(c.req.valid('json'), deps.now())))
     .get('/prefs', (c) => ok(c, deps.repos.prefs.all()))
     .put('/exercises/:id/prefs', validate('param', prefParam), validate('json', exercisePrefSchema), (c) => {
       const { id } = c.req.valid('param');

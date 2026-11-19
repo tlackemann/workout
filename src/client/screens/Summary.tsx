@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import type { Target } from '../../core/progression/types.ts';
 import { DAY_LABELS } from '../../core/days.ts';
 import { api } from '../app/api.ts';
@@ -6,6 +5,7 @@ import { useAppData } from '../app/AppData.tsx';
 import { useRouter } from '../app/router.tsx';
 import { paths } from '../app/routes.ts';
 import { useAsync } from '../app/useAsync.ts';
+import { useIdleReturn } from '../app/useIdleReturn.ts';
 import { FocusButton } from '../components/FocusButton.tsx';
 import { KeyLegend } from '../components/KeyLegend.tsx';
 import { StatTile } from '../components/StatTile.tsx';
@@ -13,7 +13,7 @@ import { Centered, Screen } from '../components/Screen.tsx';
 import { formatClock, formatDate, formatVolume, formatWeight } from '../lib/format.ts';
 import type { ExerciseDef } from '../../core/library/schema.ts';
 
-const IDLE_HOME_MS = 5 * 60_000;
+export const IDLE_HOME_MS = 5 * 60_000;
 
 function nextText(next: Target | null, exercise: ExerciseDef | undefined): string {
   if (!next || !exercise) return '';
@@ -29,19 +29,7 @@ export function Summary(props: { readonly id: string }) {
   const loaded = useAsync(() => Promise.all([api.session(props.id), api.summary(props.id)]), [props.id]);
   const goHome = () => navigate(paths.home(), { replace: true });
 
-  useEffect(() => {
-    let timer = window.setTimeout(goHome, IDLE_HOME_MS);
-    const reset = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(goHome, IDLE_HOME_MS);
-    };
-    window.addEventListener('keydown', reset);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('keydown', reset);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useIdleReturn(goHome, IDLE_HOME_MS);
 
   if (loaded.error) return <Centered><p className="text-dim">{loaded.error}</p></Centered>;
   if (!loaded.data) return <Centered><p className="text-dim">Loading summary…</p></Centered>;

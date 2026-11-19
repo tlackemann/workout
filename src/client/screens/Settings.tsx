@@ -1,6 +1,6 @@
 import { DAYS, DAY_LABELS, LENGTH_LABELS, SESSION_LENGTHS, type Day } from '../../core/days.ts';
 import { EQUIPMENT_CATALOGUE, isEligible, type EquipmentTag } from '../../core/equipment.ts';
-import type { Settings as SettingsValue } from '../../core/settings.ts';
+import { STRETCH_HOLD, STRETCH_SETUP, type Settings as SettingsValue } from '../../core/settings.ts';
 import { TEMPLATES } from '../../data/templates.ts';
 import { useAppData } from '../app/AppData.tsx';
 import { FocusGroup } from '../components/FocusGroup.tsx';
@@ -27,6 +27,26 @@ function WorkoutSection({ s, set }: { readonly s: SettingsValue; readonly set: U
       />
       <StepperRow label="Get-ready countdown" value={`${s.getReadySec} s`} onStep={(d) => set({ getReadySec: clamp(s.getReadySec + d * 5, 0, 30) })} />
       <StepperRow label="Extra time between exercises" value={`${s.changeoverSec} s`} onStep={(d) => set({ changeoverSec: clamp(s.changeoverSec + d * 15, 0, 180) })} />
+    </Section>
+  );
+}
+
+function StretchSection({ s, set }: { readonly s: SettingsValue; readonly set: Update }) {
+  const stretch = s.stretch;
+  return (
+    <Section title="Stretching" hint="Applies to static stretches. Warm-up and foam-roll moves keep their own timing.">
+      <StepperRow
+        label="Hold each stretch"
+        value={`${stretch.holdSec} s`}
+        onStep={(d) => set({ stretch: { ...stretch, holdSec: clamp(stretch.holdSec + d * STRETCH_HOLD.step, STRETCH_HOLD.min, STRETCH_HOLD.max) } })}
+        testId="setting-stretch-hold"
+      />
+      <StepperRow
+        label="Time to get into position"
+        value={`${stretch.setupSec} s`}
+        onStep={(d) => set({ stretch: { ...stretch, setupSec: clamp(stretch.setupSec + d * STRETCH_SETUP.step, STRETCH_SETUP.min, STRETCH_SETUP.max) } })}
+        testId="setting-stretch-setup"
+      />
     </Section>
   );
 }
@@ -154,6 +174,7 @@ export function Settings() {
     <Screen testId="settings" title="Settings" aside={saveError ? <span className="text-work">{saveError}</span> : <span className="text-faint">Saves automatically</span>}>
       <FocusGroup focusKey="settings" className="settings-scroll -mx-4 min-h-0 flex-1 overflow-y-auto px-4 py-2">
         <WorkoutSection {...props} />
+        <StretchSection {...props} />
         <SoundSection {...props} />
         <AnchorsSection {...props} />
         <EquipmentSection {...props} />

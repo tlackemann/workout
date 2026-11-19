@@ -2,8 +2,8 @@ import { actionItemIndex } from '../../../core/session/cursor.ts';
 import { currentSet } from '../../../core/session/selectors.ts';
 import type { MenuAction, SessionState } from '../../../core/session/types.ts';
 
-export interface MenuItem {
-  readonly action: MenuAction;
+export interface MenuItem<A extends string = MenuAction> {
+  readonly action: A;
   readonly label: string;
 }
 

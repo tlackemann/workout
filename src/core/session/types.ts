@@ -3,8 +3,7 @@ import type { Plan, PlanItem, SetKind } from '../plan.ts';
 export const SESSION_SCHEMA_VERSION = 1;
 /** Seconds the log stays editable after the final set before the session finishes. */
 export const FINAL_LOG_WINDOW_SEC = 20;
-/** A TICK this late (Home pressed, TV slept, reload) advances one phase then pauses. */
-export const CATCH_UP_THRESHOLD_MS = 15_000;
+export { CATCH_UP_THRESHOLD_MS } from '../timing.ts';
 export const ADD_REST_MS = 30_000;
 
 export type Phase = 'intro' | 'work' | 'rest' | 'done';

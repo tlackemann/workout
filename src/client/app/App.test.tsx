@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '../../core/settings.ts';
+import { NO_STRETCH } from '../test/fixtures.ts';
 
 const api = vi.hoisted(() => ({ settings: vi.fn(), prefs: vi.fn(), home: vi.fn(), sessions: vi.fn() }));
 vi.mock('./api.ts', async (importOriginal) => {
@@ -20,7 +21,7 @@ describe('App', () => {
   it('boots into Home once settings load', async () => {
     api.settings.mockResolvedValue(DEFAULT_SETTINGS);
     api.prefs.mockResolvedValue({});
-    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null });
+    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null, stretch: NO_STRETCH });
     api.sessions.mockResolvedValue([]);
     render(<App />);
     await screen.findByTestId('home');
@@ -29,7 +30,7 @@ describe('App', () => {
   it('shows a retry screen when the server is unreachable', async () => {
     api.settings.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(DEFAULT_SETTINGS);
     api.prefs.mockResolvedValue({});
-    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null });
+    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null, stretch: NO_STRETCH });
     api.sessions.mockResolvedValue([]);
     render(<App />);
     fireEvent.click(await screen.findByTestId('retry'));
@@ -40,7 +41,7 @@ describe('App', () => {
     window.history.replaceState(null, '', '/nowhere');
     api.settings.mockResolvedValue(DEFAULT_SETTINGS);
     api.prefs.mockResolvedValue({});
-    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null });
+    api.home.mockResolvedValue({ nextDay: 'push', last: null, active: null, stretch: NO_STRETCH });
     api.sessions.mockResolvedValue([]);
     render(<App />);
     fireEvent.click(await screen.findByText('Go home'));

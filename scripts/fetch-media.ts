@@ -1,5 +1,5 @@
 /**
- * Downloads the start/end frames for every curated exercise from free-exercise-db and
+ * Downloads the start/end frames for every curated exercise and stretch from free-exercise-db and
  * normalises them into public/media/<freeDbId>/{0,1}.webp (committed to the repo, so
  * builds are reproducible and the TV never talks to GitHub).
  *
@@ -10,6 +10,7 @@ import { mkdir, access, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import sharp from 'sharp';
 import { LIBRARY } from '../src/data/library.ts';
+import { STRETCHES } from '../src/data/stretches.ts';
 import { frameJobs, type FrameJob } from './media.ts';
 
 const OUT_DIR = 'public/media';
@@ -61,7 +62,7 @@ async function run(job: FrameJob): Promise<'skipped' | 'fetched'> {
 }
 
 async function main() {
-  const jobs = frameJobs(LIBRARY, OUT_DIR);
+  const jobs = frameJobs([...LIBRARY, ...STRETCHES], OUT_DIR);
   const failures: string[] = [];
   let fetched = 0;
   for (let i = 0; i < jobs.length; i += CONCURRENCY) {

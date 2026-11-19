@@ -1,5 +1,6 @@
 import type { Plan } from '../plan.ts';
 import { isFinalSet, itemAt, nextCursor, setAt } from './cursor.ts';
+import { resumeShift } from '../timing.ts';
 import { startingLoad } from './selectors.ts';
 import { FINAL_LOG_WINDOW_SEC, type Cursor, type SessionState, type SetLog } from './types.ts';
 
@@ -104,15 +105,7 @@ export function pause(state: SessionState, now: number): SessionState {
 
 export function resume(state: SessionState, now: number): SessionState {
   if (!state.paused) return { ...state, overlay: 'none', notice: null };
-  const delta = Math.max(0, now - state.paused.at);
-  return {
-    ...state,
-    paused: null,
-    overlay: 'none',
-    notice: null,
-    endsAt: state.endsAt === null ? null : state.endsAt + delta,
-    phaseStartedAt: state.phaseStartedAt + delta,
-  };
+  return { ...state, ...resumeShift(state, now), overlay: 'none', notice: null };
 }
 
 export function emptyPlan(plan: Plan): boolean {

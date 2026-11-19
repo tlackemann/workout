@@ -16,6 +16,7 @@ export function ConsistencyView(props: { readonly consistency: Consistency }) {
           <span className="text-[1.75rem] text-dim">Last 26 weeks</span>
           <LegendKey label="1 workout" swatch="fill-dim" />
           <LegendKey label="2 in a day" swatch="fill-text" />
+          <LegendKey label="Stretch" swatch="fill-stretch" />
         </div>
         <WeeklyChart weeks={props.consistency.weeks} heatmap={props.consistency.heatmap} width={CHART_WIDTH} />
         <div className="flex items-center gap-10">

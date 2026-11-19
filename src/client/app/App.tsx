@@ -9,6 +9,9 @@ import { Player } from '../screens/player/Player.tsx';
 import { Preview } from '../screens/Preview.tsx';
 import { Progress } from '../screens/progress/Progress.tsx';
 import { Settings } from '../screens/Settings.tsx';
+import { StretchDone } from '../screens/stretch/StretchDone.tsx';
+import { StretchPlayer } from '../screens/stretch/StretchPlayer.tsx';
+import { StretchPreview } from '../screens/stretch/StretchPreview.tsx';
 import { Summary } from '../screens/Summary.tsx';
 import { api } from './api.ts';
 import { AppDataProvider } from './AppData.tsx';
@@ -20,9 +23,10 @@ function Routes() {
   const { route, navigate } = useRouter();
 
   // Desktop/keyboard Back (Escape/Backspace). On the TV, Back usually arrives as a history pop.
+  // The players own Back themselves (it opens their pause menu).
   useRemoteKeys((action) => {
     if (action === 'BACK' && route.name !== 'home') window.history.back();
-  }, route.name !== 'play');
+  }, route.name !== 'play' && route.name !== 'stretchPlay');
 
   switch (route.name) {
     case 'home':
@@ -33,6 +37,12 @@ function Routes() {
       return <Player key={route.id} id={route.id} />;
     case 'summary':
       return <Summary key={route.id} id={route.id} />;
+    case 'stretchPreview':
+      return <StretchPreview key={route.id} id={route.id} />;
+    case 'stretchPlay':
+      return <StretchPlayer key={route.id} id={route.id} />;
+    case 'stretchDone':
+      return <StretchDone key={route.id} id={route.id} />;
     case 'settings':
       return <Settings />;
     case 'history':

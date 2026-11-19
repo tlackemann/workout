@@ -14,7 +14,7 @@ import { Centered } from '../../components/Screen.tsx';
 import type { RemoteAction } from '../../input/keymap.ts';
 import { useRemoteKeys } from '../../input/useRemoteKeys.ts';
 import { menuItems } from './menuItems.ts';
-import { ConfirmEnd, PauseMenu, SwapPicker } from './Overlays.tsx';
+import { ConfirmEnd, PauseMenu, SwapPicker, workoutNotice } from './Overlays.tsx';
 import { PlayerView } from './PlayerView.tsx';
 import { useBackGuard } from './useBackGuard.ts';
 import { useCueAudio } from './useCueAudio.ts';
@@ -161,7 +161,7 @@ export function Player(props: { readonly id: string }) {
   return (
     <>
       <PlayerView state={state} now={now} saving={saveStatus} />
-      {state.overlay === 'menu' && <PauseMenu items={menuItems(state)} index={menuIndex} notice={state.notice} />}
+      {state.overlay === 'menu' && <PauseMenu items={menuItems(state)} index={menuIndex} notice={workoutNotice(state.notice)} />}
       {state.overlay === 'swap' && <SwapPicker alternatives={alternatives.data} error={alternatives.error} index={swapIndex} />}
       {state.overlay === 'confirmEnd' && <ConfirmEnd endSelected={endSelected} />}
     </>

@@ -33,7 +33,13 @@ function averagePerWeek(perWeek: ReadonlyMap<DayKey, number>, thisWeek: DayKey, 
   return complete.reduce((sum, w) => sum + (perWeek.get(w) ?? 0), 0) / complete.length;
 }
 
-export function consistency(sessions: readonly DatedSession[], today: DayKey, weeks = HISTORY_WEEKS): Consistency {
+/** `stretchDays`: stretch sessions per local date. They only mark the heatmap. */
+export function consistency(
+  sessions: readonly DatedSession[],
+  today: DayKey,
+  weeks = HISTORY_WEEKS,
+  stretchDays: ReadonlyMap<DayKey, number> = new Map(),
+): Consistency {
   const thisWeek = weekStart(today);
   const starts = Array.from({ length: weeks }, (_, i) => addDays(thisWeek, -WEEK_DAYS * (weeks - 1 - i)));
   const byWeek = Map.groupBy(sessions, (s) => weekStart(s.dayKey));
@@ -48,7 +54,13 @@ export function consistency(sessions: readonly DatedSession[], today: DayKey, we
   const heatmap: HeatCell[][] = starts.map((start) =>
     Array.from({ length: WEEK_DAYS }, (_, i) => {
       const date = addDays(start, i);
-      return { date, workouts: byDate.get(date)?.length ?? 0, isToday: date === today, future: date > today };
+      return {
+        date,
+        workouts: byDate.get(date)?.length ?? 0,
+        stretches: stretchDays.get(date) ?? 0,
+        isToday: date === today,
+        future: date > today,
+      };
     }),
   );
 

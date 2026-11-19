@@ -7,7 +7,7 @@ import { formatLoad } from '../../lib/format.ts';
 import { Overlay } from '../PreviewSheet.tsx';
 import type { MenuItem } from './menuItems.ts';
 
-const NOTICES: Record<Exclude<Notice, null>, string> = {
+const WORKOUT_NOTICES: Record<Exclude<Notice, null>, string> = {
   welcome_back: 'Welcome back. Your workout is paused.',
   caught_up: 'Paused while you were away.',
 };
@@ -24,10 +24,14 @@ function Option(props: { readonly selected: boolean; readonly children: React.Re
   );
 }
 
-export function PauseMenu(props: { readonly items: readonly MenuItem[]; readonly index: number; readonly notice: Notice }) {
+export function workoutNotice(notice: Notice): string | null {
+  return notice ? WORKOUT_NOTICES[notice] : null;
+}
+
+export function PauseMenu<A extends string>(props: { readonly items: readonly MenuItem<A>[]; readonly index: number; readonly notice: string | null }) {
   return (
     <Overlay title="Paused" testId="pause-menu">
-      {props.notice && <p className="mb-6 text-[2rem] text-ready">{NOTICES[props.notice]}</p>}
+      {props.notice && <p className="mb-6 text-[2rem] text-ready">{props.notice}</p>}
       <div className="grid gap-2">
         {props.items.map((item, i) => (
           <Option key={item.action} selected={i === props.index} testId={`menu-${item.action}`}>
@@ -67,16 +71,26 @@ export function SwapPicker(props: { readonly alternatives: readonly PlanItem[] |
   );
 }
 
-export function ConfirmEnd(props: { readonly endSelected: boolean }) {
+const WORKOUT_END = {
+  title: 'End this workout?',
+  body: 'Logged sets are kept. Skipped exercises won’t count toward progression.',
+  endLabel: 'End workout',
+} as const;
+
+export function ConfirmEnd(props: {
+  readonly endSelected: boolean;
+  readonly copy?: { readonly title: string; readonly body: string; readonly endLabel: string };
+}) {
+  const copy = props.copy ?? WORKOUT_END;
   return (
-    <Overlay title="End this workout?" testId="confirm-end">
-      <p className="mb-6 text-[2rem] text-dim">Logged sets are kept. Skipped exercises won’t count toward progression.</p>
+    <Overlay title={copy.title} testId="confirm-end">
+      <p className="mb-6 text-[2rem] text-dim">{copy.body}</p>
       <div className="grid grid-cols-2 gap-4">
         <Option selected={!props.endSelected} testId="confirm-cancel">
           Keep going
         </Option>
         <Option selected={props.endSelected} testId="confirm-end-yes">
-          End workout
+          {copy.endLabel}
         </Option>
       </div>
     </Overlay>

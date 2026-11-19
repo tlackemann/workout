@@ -58,3 +58,22 @@ export const setLogs = sqliteTable(
     index('set_logs_exercise_idx').on(t.exerciseId, t.loggedAt),
   ],
 );
+
+/** Stretch-day sessions. Separate from lifting `sessions`: no set logs, no progression. */
+export const stretchSessions = sqliteTable(
+  'stretch_sessions',
+  {
+    id: text('id').primaryKey(),
+    status: text('status', { enum: ['planned', 'active', 'completed', 'ended_early', 'abandoned'] }).notNull(),
+    length: text('length', { enum: ['quick', 'standard', 'long'] }).notNull(),
+    seed: integer('seed').notNull(),
+    planJson: text('plan_json').notNull(),
+    /** Step indices finished / skipped, stored once the session ends. */
+    completedJson: text('completed_json').notNull().default('[]'),
+    skippedJson: text('skipped_json').notNull().default('[]'),
+    createdAt: integer('created_at').notNull(),
+    startedAt: integer('started_at'),
+    endedAt: integer('ended_at'),
+  },
+  (t) => [index('stretch_sessions_status_idx').on(t.status), index('stretch_sessions_ended_idx').on(t.endedAt)],
+);

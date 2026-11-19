@@ -12,7 +12,7 @@ import { FocusButton } from '../components/FocusButton.tsx';
 import { FocusGroup } from '../components/FocusGroup.tsx';
 import { KeyLegend } from '../components/KeyLegend.tsx';
 import { Centered, Screen } from '../components/Screen.tsx';
-import { formatAgo } from '../lib/format.ts';
+import { formatAgo, formatMinutes } from '../lib/format.ts';
 import { cx } from '../lib/cx.ts';
 
 const DAY_BG: Record<Day, string> = { push: 'bg-push', pull: 'bg-pull', legs: 'bg-legs' };
@@ -72,6 +72,37 @@ function DayTile(props: {
   );
 }
 
+/** Recovery, not training: a quieter full-width band below the day tiles. Never "Next up". */
+function StretchBand(props: {
+  readonly lastEndedAt: number | null;
+  readonly estimatedSec: number;
+  readonly resuming: boolean;
+  readonly autoFocus: boolean;
+  readonly busy: boolean;
+  readonly onPress: () => void;
+}) {
+  return (
+    <FocusButton
+      focusKey="stretch"
+      autoFocus={props.autoFocus}
+      onPress={props.onPress}
+      testId="stretch-band"
+      label={props.resuming ? 'Resume stretch session' : 'Stretch day'}
+      className="group mt-8 flex items-center justify-between gap-10 overflow-hidden rounded-[1.5rem] border-l-[0.75rem] border-stretch bg-surface px-10 py-6 data-[focused=true]:bg-stretch"
+    >
+      <span className="flex items-baseline gap-6">
+        <span className="font-display text-[4rem] font-bold uppercase leading-none text-stretch group-data-[focused=true]:text-bg">
+          {props.busy ? '…' : props.resuming ? 'Resume stretch' : 'Stretch'}
+        </span>
+        <span className="text-[2rem] text-dim group-data-[focused=true]:text-bg">{props.resuming ? 'Pick up where you left off' : 'Recovery · full body'}</span>
+      </span>
+      <span className="tabular text-[2rem] text-dim group-data-[focused=true]:text-bg">
+        ≈ {formatMinutes(props.estimatedSec)} · {props.lastEndedAt ? formatAgo(props.lastEndedAt, Date.now()) : 'Not yet'}
+      </span>
+    </FocusButton>
+  );
+}
+
 function ResumeBar(props: { readonly session: SessionDto; readonly onPress: () => void }) {
   const state = props.session.state;
   const total = props.session.plan.items.reduce((n, i) => n + i.sets.length, 0);
@@ -96,7 +127,7 @@ export function Home() {
   const { navigate } = useRouter();
   const { settings, library } = useAppData();
   const home = useAsync(() => Promise.all([api.home(), api.sessions(30)]), []);
-  const [busy, setBusy] = useState<Day | null>(null);
+  const [busy, setBusy] = useState<Day | 'stretch' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function pick(day: Day) {
@@ -108,6 +139,19 @@ export function Home() {
       navigate(paths.preview(session.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not plan that workout');
+      setBusy(null);
+    }
+  }
+
+  async function pickStretch() {
+    if (busy) return;
+    setBusy('stretch');
+    setError(null);
+    try {
+      const session = await api.createStretch(settings.defaultLength);
+      navigate(paths.stretchPreview(session.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not plan a stretch session');
       setBusy(null);
     }
   }
@@ -140,11 +184,19 @@ export function Home() {
             last={lastByDay(day)}
             anchors={anchorNames(day, settings, library)}
             busy={busy === day}
-            autoFocus={!info.active && info.nextDay === day}
+            autoFocus={!info.active && !info.stretch.activeId && info.nextDay === day}
             onPress={() => void pick(day)}
           />
         ))}
       </FocusGroup>
+      <StretchBand
+        lastEndedAt={info.stretch.lastEndedAt}
+        estimatedSec={info.stretch.estimatedSec}
+        resuming={info.stretch.activeId !== null}
+        autoFocus={!info.active && info.stretch.activeId !== null}
+        busy={busy === 'stretch'}
+        onPress={() => (info.stretch.activeId ? navigate(paths.stretchPlay(info.stretch.activeId)) : void pickStretch())}
+      />
       {error && <p className="mt-6 text-work" role="alert">{error}</p>}
       <div className="mt-10 flex items-end justify-between">
         <FocusGroup focusKey="home-links" className="flex gap-6">
@@ -158,7 +210,7 @@ export function Home() {
             Settings
           </FocusButton>
         </FocusGroup>
-        <KeyLegend items={[{ keys: '◀ ▶', label: 'Choose' }, { keys: 'OK', label: 'Plan workout' }]} />
+        <KeyLegend items={[{ keys: '◀ ▶ ▼', label: 'Choose' }, { keys: 'OK', label: 'Plan workout' }]} />
       </div>
     </Screen>
   );

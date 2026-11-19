@@ -24,6 +24,8 @@
   --color-push: #c8553d;
   --color-pull: #3d7fb8;
   --color-legs: #7f9a3c;
+  /* Stretch day: recovery, deliberately apart from the training hues. */
+  --color-stretch: #a58bd6;
 
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --font-body: "Barlow", "Segoe UI", sans-serif;

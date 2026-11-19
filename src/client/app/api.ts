@@ -7,8 +7,10 @@ import type { StatsDto } from '../../core/stats/types.ts';
 import type { SessionSummary } from '../../core/summary.ts';
 import type { HomeDto } from '../../server/services/sessionService.ts';
 import type { SessionDto } from '../../server/services/sessionDto.ts';
+import type { FinishInput } from '../../server/services/stretchService.ts';
+import type { StretchSessionDto } from '../../server/services/stretchDto.ts';
 
-export type { HomeDto, SessionDto, StatsDto };
+export type { FinishInput, HomeDto, SessionDto, StatsDto, StretchSessionDto };
 
 /** The TV's own time zone, so days and weeks match the wall clock (the server runs in UTC). */
 function tzQuery(): string {
@@ -76,6 +78,13 @@ export const api = {
     request<ExercisePref>('PUT', `/api/exercises/${exerciseId}/prefs`, pref),
   history: (exerciseId: string) => request<Exposure[]>('GET', `/api/exercises/${exerciseId}/history`),
   stats: () => request<StatsDto>('GET', `/api/stats${tzQuery()}`),
+  createStretch: (length?: SessionLength) => request<StretchSessionDto>('POST', '/api/stretch', { length }),
+  stretch: (id: string) => request<StretchSessionDto>('GET', `/api/stretch/${id}`),
+  stretchList: (limit = 20) => request<StretchSessionDto[]>('GET', `/api/stretch?limit=${limit}`),
+  rerollStretch: (id: string, length?: SessionLength) => request<StretchSessionDto>('POST', `/api/stretch/${id}/reroll`, { length }),
+  startStretch: (id: string) => request<StretchSessionDto>('POST', `/api/stretch/${id}/start`, {}),
+  finishStretch: (id: string, outcome: FinishInput) => request<StretchSessionDto>('POST', `/api/stretch/${id}/finish`, outcome),
+  deleteStretch: (id: string) => request<{ id: string }>('DELETE', `/api/stretch/${id}`, {}),
 };
 
 export const mediaUrl = (exerciseId: string, frame: 0 | 1) => `/api/media/${exerciseId}/${frame}`;

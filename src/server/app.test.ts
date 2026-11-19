@@ -14,6 +14,9 @@ import type { PlanItem } from '../core/plan.ts';
 import { DEFAULT_SETTINGS } from '../core/settings.ts';
 import { LIBRARY } from '../data/library.ts';
 import { TEMPLATES } from '../data/templates.ts';
+import { STRETCH_TEMPLATE } from '../data/stretchTemplate.ts';
+import { STRETCHES } from '../data/stretches.ts';
+import { indexStretches } from '../core/stretch/schema.ts';
 
 let handle: DbHandle;
 let app: App;
@@ -26,6 +29,8 @@ function makeDeps(): Deps {
     repos: createRepositories(handle.db),
     library: indexLibrary(LIBRARY),
     templates: TEMPLATES,
+    stretchLibrary: indexStretches(STRETCHES),
+    stretchTemplate: STRETCH_TEMPLATE,
     now: () => clock,
     newId: () => `sess-${++ids}`,
     newSeed: () => 1000 + ids,

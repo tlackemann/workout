@@ -41,9 +41,10 @@ export async function resolveFrame(dirs: MediaDirs, exerciseId: string, freeDbId
 export function mediaRoutes(deps: Deps, dirs: MediaDirs) {
   return new Hono().get('/:id/:frame', validate('param', params), async (c) => {
     const { id, frame } = c.req.valid('param');
-    const exercise = deps.library.get(id);
-    if (!exercise) return fail(c, 404, 'Unknown exercise');
-    const found = await resolveFrame(dirs, id, exercise.freeDbId, frame);
+    // Exercise and stretch ids never collide (checked by the data tests).
+    const subject = deps.library.get(id) ?? deps.stretchLibrary.get(id);
+    if (!subject) return fail(c, 404, 'Unknown exercise');
+    const found = await resolveFrame(dirs, id, subject.freeDbId, frame);
     if (!found) return fail(c, 404, 'No image for this exercise');
     const body = await readFile(found.path);
     return c.body(body, 200, { 'Content-Type': found.type, 'Cache-Control': CACHE });

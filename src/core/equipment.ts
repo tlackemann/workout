@@ -18,6 +18,10 @@ export const EQUIPMENT_CATALOGUE = [
   { group: 'Cable attachments', tag: 'cable.straight_bar', label: 'Straight / lat bar' },
   { group: 'Cable attachments', tag: 'cable.rope', label: 'Rope' },
   { group: 'Cable attachments', tag: 'cable.vbar', label: 'V-bar' },
+  { group: 'Recovery', tag: 'foam_roller', label: 'Foam roller' },
+  { group: 'Recovery', tag: 'stretch_strap', label: 'Strap / towel / band' },
+  { group: 'Recovery', tag: 'stretch_stick', label: 'Broomstick / dowel' },
+  { group: 'Recovery', tag: 'exercise_ball', label: 'Exercise ball' },
   { group: 'Later', tag: 'dumbbells', label: 'Dumbbells' },
   { group: 'Later', tag: 'pullup_bar', label: 'Pull-up bar' },
   { group: 'Later', tag: 'dip_bars', label: 'Dip bars' },
@@ -40,6 +44,9 @@ const NOT_OWNED_YET: readonly EquipmentTag[] = [
   'cable.rope',
   'cable.vbar',
 ];
+
+/** Stretch-day gear. Settings saved before stretching existed get these switched on once. */
+export const RECOVERY_TAGS: readonly EquipmentTag[] = EQUIPMENT_CATALOGUE.filter((e) => e.group === 'Recovery').map((e) => e.tag);
 
 export const DEFAULT_EQUIPMENT: readonly EquipmentTag[] = EQUIPMENT_TAGS.filter((t) => !NOT_OWNED_YET.includes(t));
 

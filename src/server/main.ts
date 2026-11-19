@@ -10,19 +10,28 @@ import { createRepositories } from './repositories/index.ts';
 import { indexLibrary } from '../core/library/index.ts';
 import { librarySchema } from '../core/library/schema.ts';
 import { randomSeed } from '../core/prng.ts';
+import { indexStretches, stretchLibrarySchema } from '../core/stretch/schema.ts';
 import { LIBRARY } from '../data/library.ts';
+import { STRETCH_TEMPLATE } from '../data/stretchTemplate.ts';
+import { STRETCHES } from '../data/stretches.ts';
 import { TEMPLATES } from '../data/templates.ts';
 
 const config = loadConfig(process.env);
 const library = indexLibrary(librarySchema.parse(LIBRARY));
+const stretchLibrary = indexStretches(stretchLibrarySchema.parse(STRETCHES));
 
 if (config.dbPath !== ':memory:') mkdirSync(dirname(config.dbPath), { recursive: true });
 const handle = openDb(config.dbPath, config.migrationsDir);
 
+const repos = createRepositories(handle.db);
+if (repos.settings.migrate(Date.now())) console.info('[gym-tv] settings upgraded: recovery gear switched on');
+
 const deps = {
-  repos: createRepositories(handle.db),
+  repos,
   library,
   templates: TEMPLATES,
+  stretchLibrary,
+  stretchTemplate: STRETCH_TEMPLATE,
   now: () => Date.now(),
   newId: () => randomUUID(),
   newSeed: randomSeed,

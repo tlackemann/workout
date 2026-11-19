@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { phase, press, startQuickWorkout, waitOutPhase } from './helpers.ts';
+import { focusHomeLink, phase, press, startQuickWorkout, waitOutPhase } from './helpers.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -153,14 +153,9 @@ test('settings work by touch and persist', async ({ page }) => {
 test('charts finished workouts on the Progress screen with only the remote', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByTestId('home')).toBeVisible();
-  const focused = (id: string) => page.getByTestId(id).getAttribute('data-focused');
 
-  // Down to the link row, then sideways to Progress.
-  await press(page, 'ArrowDown');
-  for (let i = 0; i < 3 && (await focused('go-progress')) !== 'true'; i++) {
-    await press(page, (await focused('go-history')) === 'true' ? 'ArrowRight' : 'ArrowLeft');
-  }
-  await expect(page.getByTestId('go-progress')).toHaveAttribute('data-focused', 'true');
+  // Down past the Stretch band to the link row, then sideways to Progress.
+  await focusHomeLink(page, 'go-progress');
   await press(page, 'Enter');
 
   // Lifts: tab focused; ▼ walks the exercise list and the detail follows focus.
@@ -193,10 +188,7 @@ test('charts finished workouts on the Progress screen with only the remote', asy
 test('deletes a finished workout from History with only the remote', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByTestId('home')).toBeVisible();
-  await press(page, 'ArrowDown');
-  for (let i = 0; i < 3 && (await page.getByTestId('go-history').getAttribute('data-focused')) !== 'true'; i++) {
-    await press(page, 'ArrowLeft');
-  }
+  await focusHomeLink(page, 'go-history');
   await press(page, 'Enter');
   await expect(page.getByTestId('history')).toBeVisible();
 

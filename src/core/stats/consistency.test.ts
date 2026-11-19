@@ -36,6 +36,23 @@ describe('consistency', () => {
     expect(thisWeek[6]).toMatchObject({ future: true });
   });
 
+  it('marks stretch days on the heatmap without counting them as workouts', () => {
+    const stretches = new Map([['2026-11-10', 1], ['2026-11-11', 2], ['2026-10-01', 1]]);
+    const c = consistency([dated('a', '2026-11-11', work)], TODAY, 26, stretches);
+    const thisWeek = c.heatmap.at(-1)!;
+    expect(thisWeek[1]).toMatchObject({ date: '2026-11-10', workouts: 0, stretches: 1 });
+    expect(thisWeek[2]).toMatchObject({ date: '2026-11-11', workouts: 1, stretches: 2 });
+    expect(thisWeek[0]).toMatchObject({ stretches: 0 });
+    expect(c.weeks.at(-1)?.total).toBe(1);
+    expect(c.streak.thisWeek).toBe(1);
+  });
+
+  it('keeps a stretch-only week from starting or extending a streak', () => {
+    const lastWeekStretch = new Map([['2026-11-04', 1]]);
+    const c = consistency([dated('a', '2026-11-10', work)], TODAY, 26, lastWeekStretch);
+    expect(c.streak).toEqual({ current: 1, best: 1, thisWeek: 1 });
+  });
+
   it('averages over complete weeks only, and only since the first workout', () => {
     expect(consistency([dated('a', '2026-11-10', work)], TODAY).avgPerWeek).toBeNull();
     const c = consistency([dated('a', '2026-10-27', work), dated('b', '2026-10-29', work), dated('c', '2026-11-03', work), dated('d', '2026-11-10', work)], TODAY);

@@ -51,7 +51,11 @@ export function Progress(props: { readonly tab: ProgressTab }) {
     return (
       <Centered>
         <p className="font-display text-[4rem] font-semibold">No finished workouts yet</p>
-        <p className="text-dim">Finish one and your progress shows up here.</p>
+        <p className="text-dim">
+          {stats.data.stretches > 0
+            ? `${stats.data.stretches} stretch ${stats.data.stretches === 1 ? 'session' : 'sessions'} so far. Finish a workout and your progress shows up here.`
+            : 'Finish one and your progress shows up here.'}
+        </p>
         <FocusButton autoFocus onPress={() => window.history.back()} className="rounded-2xl bg-surface-2 px-10 py-4">
           Back
         </FocusButton>

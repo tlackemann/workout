@@ -11,6 +11,9 @@ import type { StatsDto } from '../core/stats/index.ts';
 import type { SetLog } from '../core/session/types.ts';
 import { LIBRARY } from '../data/library.ts';
 import { TEMPLATES } from '../data/templates.ts';
+import { STRETCH_TEMPLATE } from '../data/stretchTemplate.ts';
+import { STRETCHES } from '../data/stretches.ts';
+import { indexStretches } from '../core/stretch/schema.ts';
 
 const NOW = Date.UTC(2026, 10, 14, 17); // Sat Nov 14, 12:00 in New York
 const HOUR = 3_600_000;
@@ -24,7 +27,7 @@ beforeEach(() => {
   repos = createRepositories(handle.db);
   const root = mkdtempSync(join(tmpdir(), 'gymtv-stats-'));
   app = createApp(
-    { repos, library: indexLibrary(LIBRARY), templates: TEMPLATES, now: () => NOW, newId: () => 'x', newSeed: () => 1 },
+    { repos, library: indexLibrary(LIBRARY), templates: TEMPLATES, stretchLibrary: indexStretches(STRETCHES), stretchTemplate: STRETCH_TEMPLATE, now: () => NOW, newId: () => 'x', newSeed: () => 1 },
     { media: { bundled: join(root, 'b'), overrides: join(root, 'o') } },
   );
 });
